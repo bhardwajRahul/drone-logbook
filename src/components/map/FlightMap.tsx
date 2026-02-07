@@ -5,7 +5,7 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import Map, { Source, Layer, NavigationControl, Marker } from 'react-map-gl/maplibre';
-import type { LineLayer, CircleLayer, MapRef } from 'react-map-gl/maplibre';
+import type { LineLayer, MapRef } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { getTrackCenter, calculateBounds } from '@/lib/utils';
 
@@ -85,27 +85,6 @@ export function FlightMap({ track, themeMode }: FlightMapProps) {
     };
   }, [track]);
 
-  const altitudePointsGeoJSON = useMemo(() => {
-    if (track.length === 0) return null;
-
-    const step = Math.max(1, Math.floor(track.length / 800));
-    const features = track
-      .filter((_, index) => index % step === 0)
-      .map(([lng, lat, alt]) => ({
-        type: 'Feature' as const,
-        properties: { altitude: alt },
-        geometry: {
-          type: 'Point' as const,
-          coordinates: [lng, lat],
-        },
-      }));
-
-    return {
-      type: 'FeatureCollection' as const,
-      features,
-    };
-  }, [track]);
-
   // Start and end markers
   const startPoint = track[0];
   const endPoint = track[track.length - 1];
@@ -116,32 +95,18 @@ export function FlightMap({ track, themeMode }: FlightMapProps) {
     type: 'line',
     source: 'flight-track',
     paint: {
-      'line-color': '#00A0DC',
-      'line-width': 3,
-      'line-opacity': 0.8,
-    },
-  };
-
-  const altitudeLayerStyle: CircleLayer = {
-    id: 'altitude-points',
-    type: 'circle',
-    source: 'altitude-points',
-    paint: {
-      'circle-radius': 3,
-      'circle-opacity': 0.8,
-      'circle-color': [
+      'line-color': '#facc15',
+      'line-gradient': [
         'interpolate',
         ['linear'],
-        ['get', 'altitude'],
+        ['line-progress'],
         0,
-        '#38bdf8',
-        50,
-        '#f59e0b',
-        120,
-        '#f97316',
-        200,
+        '#facc15',
+        1,
         '#ef4444',
       ],
+      'line-width': 3,
+      'line-opacity': 0.8,
     },
   };
 
@@ -240,19 +205,12 @@ export function FlightMap({ track, themeMode }: FlightMapProps) {
         </Source>
       )}
 
-      {/* Altitude Points */}
-      {altitudePointsGeoJSON && (
-        <Source id="altitude-points" type="geojson" data={altitudePointsGeoJSON}>
-          <Layer {...altitudeLayerStyle} />
-        </Source>
-      )}
-
-      {/* Start Marker (Green) */}
+      {/* Start Marker (Yellow) */}
       {startPoint && (
         <Marker longitude={startPoint[0]} latitude={startPoint[1]} anchor="center">
           <div className="relative">
-            <div className="w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-lg" />
-            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs bg-green-500 text-white px-1.5 py-0.5 rounded whitespace-nowrap">
+            <div className="w-4 h-4 bg-yellow-400 rounded-full border-2 border-white shadow-lg" />
+            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs bg-yellow-500 text-black px-1.5 py-0.5 rounded whitespace-nowrap">
               Start
             </div>
           </div>

@@ -15,7 +15,6 @@ use thiserror::Error;
 
 use crate::models::{BatteryUsage, Flight, FlightMetadata, OverviewStats, TelemetryPoint, TelemetryRecord};
 
-/// Custom error types for database operations
 #[derive(Error, Debug)]
 pub enum DatabaseError {
     #[error("DuckDB error: {0}")]
@@ -223,6 +222,8 @@ impl Database {
                 
                 -- RC
                 rc_signal       INTEGER,
+                rc_uplink       INTEGER,
+                rc_downlink     INTEGER,
                 
                 -- Composite primary key for efficient range queries
                 PRIMARY KEY (flight_id, timestamp_ms)
@@ -235,6 +236,8 @@ impl Database {
             -- Schema migrations for existing databases
             ALTER TABLE telemetry ADD COLUMN IF NOT EXISTS height DOUBLE;
             ALTER TABLE telemetry ADD COLUMN IF NOT EXISTS vps_height DOUBLE;
+            ALTER TABLE telemetry ADD COLUMN IF NOT EXISTS rc_uplink INTEGER;
+            ALTER TABLE telemetry ADD COLUMN IF NOT EXISTS rc_downlink INTEGER;
 
             -- ============================================================
             -- KEYCHAIN TABLE: Store cached decryption keys for V13+ logs
@@ -281,6 +284,8 @@ impl Database {
             "gps_signal",
             "satellites",
             "rc_signal",
+            "rc_uplink",
+            "rc_downlink",
         ];
 
         let mut stmt = conn.prepare("PRAGMA table_info('telemetry')")?;
@@ -425,6 +430,8 @@ impl Database {
                 point.gps_signal,
                 point.satellites,
                 point.rc_signal,
+                point.rc_uplink,
+                point.rc_downlink,
             ])?;
         }
 
@@ -449,7 +456,7 @@ impl Database {
                 drone_model, drone_serial, aircraft_name, battery_serial,
                 CAST(start_time AS VARCHAR) AS start_time,
                 duration_secs, total_distance,
-                max_altitude, max_speed, point_count
+                max_altitude, max_speed, home_lat, home_lon, point_count
             FROM flights
             ORDER BY start_time DESC
             "#,
@@ -470,7 +477,9 @@ impl Database {
                     total_distance: row.get(9)?,
                     max_altitude: row.get(10)?,
                     max_speed: row.get(11)?,
-                    point_count: row.get(12)?,
+                    home_lat: row.get(12)?,
+                    home_lon: row.get(13)?,
+                    point_count: row.get(14)?,
                 })
             })?
             .collect::<Result<Vec<_>, _>>()?;
@@ -541,6 +550,9 @@ impl Database {
                 height,
                 vps_height,
                 speed,
+                velocity_x,
+                velocity_y,
+                velocity_z,
                 battery_percent,
                 battery_voltage,
                 battery_temp,
@@ -549,7 +561,9 @@ impl Database {
                 yaw,
                 satellites,
                 flight_mode,
-                rc_signal
+                rc_signal,
+                rc_uplink,
+                rc_downlink
             FROM telemetry
             WHERE flight_id = ?
             ORDER BY timestamp_ms ASC
@@ -566,15 +580,20 @@ impl Database {
                     height: row.get(4)?,
                     vps_height: row.get(5)?,
                     speed: row.get(6)?,
-                    battery_percent: row.get(7)?,
-                    battery_voltage: row.get(8)?,
-                    battery_temp: row.get(9)?,
-                    pitch: row.get(10)?,
-                    roll: row.get(11)?,
-                    yaw: row.get(12)?,
-                    satellites: row.get(13)?,
-                    flight_mode: row.get(14)?,
-                    rc_signal: row.get(15)?,
+                    velocity_x: row.get(7)?,
+                    velocity_y: row.get(8)?,
+                    velocity_z: row.get(9)?,
+                    battery_percent: row.get(10)?,
+                    battery_voltage: row.get(11)?,
+                    battery_temp: row.get(12)?,
+                    pitch: row.get(13)?,
+                    roll: row.get(14)?,
+                    yaw: row.get(15)?,
+                    satellites: row.get(16)?,
+                    flight_mode: row.get(17)?,
+                    rc_signal: row.get(18)?,
+                    rc_uplink: row.get(19)?,
+                    rc_downlink: row.get(20)?,
                 })
             })?
             .collect::<Result<Vec<_>, _>>()?;
@@ -612,6 +631,9 @@ impl Database {
                     AVG(height) AS height,
                     AVG(vps_height) AS vps_height,
                     AVG(speed) AS speed,
+                    AVG(velocity_x) AS velocity_x,
+                    AVG(velocity_y) AS velocity_y,
+                    AVG(velocity_z) AS velocity_z,
                     AVG(battery_percent)::INTEGER AS battery_percent,
                     AVG(battery_voltage) AS battery_voltage,
                     AVG(battery_temp) AS battery_temp,
@@ -620,7 +642,9 @@ impl Database {
                     AVG(yaw) AS yaw,
                     MODE(satellites) AS satellites,
                     MODE(flight_mode) AS flight_mode,
-                    AVG(rc_signal)::INTEGER AS rc_signal
+                    AVG(rc_signal)::INTEGER AS rc_signal,
+                    AVG(rc_uplink)::INTEGER AS rc_uplink,
+                    AVG(rc_downlink)::INTEGER AS rc_downlink
                 FROM telemetry
                 WHERE flight_id = ?
                 GROUP BY bucket_ts
@@ -640,15 +664,20 @@ impl Database {
                     height: row.get(4)?,
                     vps_height: row.get(5)?,
                     speed: row.get(6)?,
-                    battery_percent: row.get(7)?,
-                    battery_voltage: row.get(8)?,
-                    battery_temp: row.get(9)?,
-                    pitch: row.get(10)?,
-                    roll: row.get(11)?,
-                    yaw: row.get(12)?,
-                    satellites: row.get(13)?,
-                    flight_mode: row.get(14)?,
-                    rc_signal: row.get(15)?,
+                    velocity_x: row.get(7)?,
+                    velocity_y: row.get(8)?,
+                    velocity_z: row.get(9)?,
+                    battery_percent: row.get(10)?,
+                    battery_voltage: row.get(11)?,
+                    battery_temp: row.get(12)?,
+                    pitch: row.get(13)?,
+                    roll: row.get(14)?,
+                    yaw: row.get(15)?,
+                    satellites: row.get(16)?,
+                    flight_mode: row.get(17)?,
+                    rc_signal: row.get(18)?,
+                    rc_uplink: row.get(19)?,
+                    rc_downlink: row.get(20)?,
                 })
             })?
             .collect::<Result<Vec<_>, _>>()?;

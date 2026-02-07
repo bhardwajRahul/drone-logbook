@@ -44,6 +44,8 @@ pub struct Flight {
     pub total_distance: Option<f64>,
     pub max_altitude: Option<f64>,
     pub max_speed: Option<f64>,
+    pub home_lat: Option<f64>,
+    pub home_lon: Option<f64>,
     pub point_count: Option<i32>,
 }
 
@@ -87,6 +89,8 @@ pub struct TelemetryPoint {
     pub gps_signal: Option<i32>,
     pub satellites: Option<i32>,
     pub rc_signal: Option<i32>,
+    pub rc_uplink: Option<i32>,
+    pub rc_downlink: Option<i32>,
 }
 
 /// Telemetry record for frontend consumption (optimized for ECharts)
@@ -100,6 +104,9 @@ pub struct TelemetryRecord {
     pub height: Option<f64>,
     pub vps_height: Option<f64>,
     pub speed: Option<f64>,
+    pub velocity_x: Option<f64>,
+    pub velocity_y: Option<f64>,
+    pub velocity_z: Option<f64>,
     pub battery_percent: Option<i32>,
     pub battery_voltage: Option<f64>,
     pub battery_temp: Option<f64>,
@@ -109,6 +116,8 @@ pub struct TelemetryRecord {
     pub satellites: Option<i32>,
     pub flight_mode: Option<String>,
     pub rc_signal: Option<i32>,
+    pub rc_uplink: Option<i32>,
+    pub rc_downlink: Option<i32>,
 }
 
 /// Response format optimized for ECharts rendering
@@ -145,6 +154,10 @@ pub struct BatteryUsage {
 pub struct TelemetryData {
     /// Time axis in seconds from flight start
     pub time: Vec<f64>,
+    /// Latitude series
+    pub latitude: Vec<Option<f64>>,
+    /// Longitude series
+    pub longitude: Vec<Option<f64>>,
     /// Altitude series (legacy fallback)
     pub altitude: Vec<Option<f64>>,
     /// Height series
@@ -153,6 +166,12 @@ pub struct TelemetryData {
     pub vps_height: Vec<Option<f64>>,
     /// Speed series
     pub speed: Vec<Option<f64>>,
+    /// Velocity X series (north)
+    pub velocity_x: Vec<Option<f64>>,
+    /// Velocity Y series (east)
+    pub velocity_y: Vec<Option<f64>>,
+    /// Velocity Z series (down)
+    pub velocity_z: Vec<Option<f64>>,
     /// Battery percent series
     pub battery: Vec<Option<i32>>,
     /// Battery voltage series
@@ -163,6 +182,10 @@ pub struct TelemetryData {
     pub satellites: Vec<Option<i32>>,
     /// RC signal strength
     pub rc_signal: Vec<Option<i32>>,
+    /// RC uplink signal strength
+    pub rc_uplink: Vec<Option<i32>>,
+    /// RC downlink signal strength
+    pub rc_downlink: Vec<Option<i32>>,
     /// Pitch angle
     pub pitch: Vec<Option<f64>>,
     /// Roll angle
@@ -181,15 +204,22 @@ impl TelemetryData {
                 .iter()
                 .map(|r| (r.timestamp_ms - base_time) as f64 / 1000.0)
                 .collect(),
+            latitude: records.iter().map(|r| r.latitude).collect(),
+            longitude: records.iter().map(|r| r.longitude).collect(),
             altitude: records.iter().map(|r| r.altitude).collect(),
             height: records.iter().map(|r| r.height).collect(),
             vps_height: records.iter().map(|r| r.vps_height).collect(),
             speed: records.iter().map(|r| r.speed).collect(),
+            velocity_x: records.iter().map(|r| r.velocity_x).collect(),
+            velocity_y: records.iter().map(|r| r.velocity_y).collect(),
+            velocity_z: records.iter().map(|r| r.velocity_z).collect(),
             battery: records.iter().map(|r| r.battery_percent).collect(),
             battery_voltage: records.iter().map(|r| r.battery_voltage).collect(),
             battery_temp: records.iter().map(|r| r.battery_temp).collect(),
             satellites: records.iter().map(|r| r.satellites).collect(),
             rc_signal: records.iter().map(|r| r.rc_signal).collect(),
+            rc_uplink: records.iter().map(|r| r.rc_uplink).collect(),
+            rc_downlink: records.iter().map(|r| r.rc_downlink).collect(),
             pitch: records.iter().map(|r| r.pitch).collect(),
             roll: records.iter().map(|r| r.roll).collect(),
             yaw: records.iter().map(|r| r.yaw).collect(),

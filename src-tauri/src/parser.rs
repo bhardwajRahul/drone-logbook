@@ -253,6 +253,8 @@ impl<'a> LogParser<'a> {
             point.battery_current = Some(battery.current as f64);
             point.battery_temp = Some(battery.temperature as f64);
 
+            point.rc_uplink = rc.uplink_signal.map(i32::from);
+            point.rc_downlink = rc.downlink_signal.map(i32::from);
             point.rc_signal = rc.downlink_signal.or(rc.uplink_signal).map(i32::from);
 
             // Only add points with valid GPS data

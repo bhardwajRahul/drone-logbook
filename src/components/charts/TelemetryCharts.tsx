@@ -1,6 +1,6 @@
 /**
  * Telemetry charts component using ECharts
- * Displays height, VPS height, speed, battery, attitude, RC, and GPS data
+ * Displays height, VPS height, speed, battery, attitude, RC, GPS, distance to home, and velocity data
  * Optimized for performance with large datasets
  */
 
@@ -114,6 +114,14 @@ export function TelemetryCharts({ data, unitSystem, startTime }: TelemetryCharts
     () => createRcSignalChart(data, splitLineColor, tooltipFormatter, tooltipColors),
     [data, splitLineColor, tooltipColors, tooltipFormatter]
   );
+  const distanceToHomeOption = useMemo(
+    () => createDistanceToHomeChart(data, unitSystem, splitLineColor, tooltipFormatter, tooltipColors),
+    [data, splitLineColor, tooltipColors, tooltipFormatter, unitSystem]
+  );
+  const velocityOption = useMemo(
+    () => createVelocityChart(data, unitSystem, splitLineColor, tooltipFormatter, tooltipColors),
+    [data, splitLineColor, tooltipColors, tooltipFormatter, unitSystem]
+  );
   const gpsOption = useMemo(
     () => createGpsChart(data, splitLineColor, tooltipFormatter, tooltipColors),
     [data, splitLineColor, tooltipColors, tooltipFormatter]
@@ -166,6 +174,28 @@ export function TelemetryCharts({ data, unitSystem, startTime }: TelemetryCharts
       <div className="h-40">
         <ReactECharts
           option={rcSignalOption}
+          style={{ height: '100%', width: '100%' }}
+          opts={{ renderer: 'canvas' }}
+          notMerge={true}
+          onChartReady={registerChart}
+        />
+      </div>
+
+      {/* Distance to Home Chart */}
+      <div className="h-48">
+        <ReactECharts
+          option={distanceToHomeOption}
+          style={{ height: '100%', width: '100%' }}
+          opts={{ renderer: 'canvas' }}
+          notMerge={true}
+          onChartReady={registerChart}
+        />
+      </div>
+
+      {/* Velocity Chart */}
+      <div className="h-48">
+        <ReactECharts
+          option={velocityOption}
           style={{ height: '100%', width: '100%' }}
           opts={{ renderer: 'canvas' }}
           notMerge={true}
@@ -675,6 +705,11 @@ function createRcSignalChart(
   tooltipFormatter: TooltipFormatter,
   tooltipColors: TooltipColors
 ): EChartsOption {
+  const rcUplink = data.rcUplink ?? [];
+  const rcDownlink = data.rcDownlink ?? [];
+  const hasUplink = rcUplink.some((val) => val !== null && val !== undefined);
+  const hasDownlink = rcDownlink.some((val) => val !== null && val !== undefined);
+  const showCombined = !hasUplink && !hasDownlink;
   return {
     ...baseChartConfig,
     tooltip: {
@@ -686,7 +721,7 @@ function createRcSignalChart(
     },
     legend: {
       ...baseChartConfig.legend,
-      data: ['RC Signal'],
+      data: showCombined ? ['RC Signal'] : ['RC Uplink', 'RC Downlink'],
     },
     xAxis: {
       ...createTimeAxis(data.time),
@@ -713,10 +748,112 @@ function createRcSignalChart(
       },
     },
     series: [
+      ...(showCombined
+        ? [
+            {
+              name: 'RC Signal',
+              type: 'line',
+              data: data.rcSignal,
+              smooth: true,
+              symbol: 'none',
+              itemStyle: {
+                color: '#22c55e',
+              },
+              lineStyle: {
+                color: '#22c55e',
+                width: 1.5,
+              },
+            },
+          ]
+        : [
+            {
+              name: 'RC Uplink',
+              type: 'line',
+              data: rcUplink,
+              smooth: true,
+              symbol: 'none',
+              itemStyle: {
+                color: '#22c55e',
+              },
+              lineStyle: {
+                color: '#22c55e',
+                width: 1.5,
+              },
+            },
+            {
+              name: 'RC Downlink',
+              type: 'line',
+              data: rcDownlink,
+              smooth: true,
+              symbol: 'none',
+              itemStyle: {
+                color: '#38bdf8',
+              },
+              lineStyle: {
+                color: '#38bdf8',
+                width: 1.5,
+              },
+            },
+          ]),
+    ],
+  };
+}
+
+function createDistanceToHomeChart(
+  data: TelemetryData,
+  unitSystem: UnitSystem,
+  splitLineColor: string,
+  tooltipFormatter: TooltipFormatter,
+  tooltipColors: TooltipColors
+): EChartsOption {
+  const distances = computeDistanceToHomeSeries(data);
+  const distanceSeries =
+    unitSystem === 'imperial'
+      ? distances.map((val) => (val === null ? null : val * 3.28084))
+      : distances;
+  const distanceUnit = unitSystem === 'imperial' ? 'ft' : 'm';
+  const distanceRange = computeRange(distanceSeries, { clampMin: 0 });
+
+  return {
+    ...baseChartConfig,
+    tooltip: {
+      ...baseChartConfig.tooltip,
+      backgroundColor: tooltipColors.background,
+      borderColor: tooltipColors.border,
+      textStyle: { color: tooltipColors.text },
+      formatter: tooltipFormatter,
+    },
+    legend: {
+      ...baseChartConfig.legend,
+      data: ['Distance to Home'],
+    },
+    xAxis: {
+      ...createTimeAxis(data.time),
+    },
+    yAxis: {
+      type: 'value',
+      name: `Distance (${distanceUnit})`,
+      min: distanceRange.min,
+      max: distanceRange.max,
+      axisLine: {
+        lineStyle: {
+          color: '#22c55e',
+        },
+      },
+      axisLabel: {
+        color: '#9ca3af',
+      },
+      splitLine: {
+        lineStyle: {
+          color: splitLineColor,
+        },
+      },
+    },
+    series: [
       {
-        name: 'RC Signal',
+        name: 'Distance to Home',
         type: 'line',
-        data: data.rcSignal,
+        data: distanceSeries,
         smooth: true,
         symbol: 'none',
         itemStyle: {
@@ -729,6 +866,144 @@ function createRcSignalChart(
       },
     ],
   };
+}
+
+function createVelocityChart(
+  data: TelemetryData,
+  unitSystem: UnitSystem,
+  splitLineColor: string,
+  tooltipFormatter: TooltipFormatter,
+  tooltipColors: TooltipColors
+): EChartsOption {
+  const velocityX = data.velocityX ?? [];
+  const velocityY = data.velocityY ?? [];
+  const velocityZ = data.velocityZ ?? [];
+  const speedSeriesFactor = unitSystem === 'imperial' ? 2.236936 : 3.6;
+  const xSeries = velocityX.map((val) => (val === null || val === undefined ? null : val * speedSeriesFactor));
+  const ySeries = velocityY.map((val) => (val === null || val === undefined ? null : val * speedSeriesFactor));
+  const zSeries = velocityZ.map((val) => (val === null || val === undefined ? null : val * speedSeriesFactor));
+  const speedUnit = unitSystem === 'imperial' ? 'mph' : 'km/h';
+  const speedRange = computeRange([...xSeries, ...ySeries, ...zSeries]);
+
+  return {
+    ...baseChartConfig,
+    tooltip: {
+      ...baseChartConfig.tooltip,
+      backgroundColor: tooltipColors.background,
+      borderColor: tooltipColors.border,
+      textStyle: { color: tooltipColors.text },
+      formatter: tooltipFormatter,
+    },
+    legend: {
+      ...baseChartConfig.legend,
+      data: ['X Speed', 'Y Speed', 'Z Speed'],
+    },
+    xAxis: {
+      ...createTimeAxis(data.time),
+    },
+    yAxis: {
+      type: 'value',
+      name: `Speed (${speedUnit})`,
+      min: speedRange.min,
+      max: speedRange.max,
+      axisLine: {
+        lineStyle: {
+          color: '#f59e0b',
+        },
+      },
+      axisLabel: {
+        color: '#9ca3af',
+      },
+      splitLine: {
+        lineStyle: {
+          color: splitLineColor,
+        },
+      },
+    },
+    series: [
+      {
+        name: 'X Speed',
+        type: 'line',
+        data: xSeries,
+        smooth: true,
+        symbol: 'none',
+        itemStyle: {
+          color: '#f59e0b',
+        },
+        lineStyle: {
+          color: '#f59e0b',
+          width: 1.5,
+        },
+      },
+      {
+        name: 'Y Speed',
+        type: 'line',
+        data: ySeries,
+        smooth: true,
+        symbol: 'none',
+        itemStyle: {
+          color: '#ec4899',
+        },
+        lineStyle: {
+          color: '#ec4899',
+          width: 1.5,
+        },
+      },
+      {
+        name: 'Z Speed',
+        type: 'line',
+        data: zSeries,
+        smooth: true,
+        symbol: 'none',
+        itemStyle: {
+          color: '#38bdf8',
+        },
+        lineStyle: {
+          color: '#38bdf8',
+          width: 1.5,
+        },
+      },
+    ],
+  };
+}
+
+function computeDistanceToHomeSeries(data: TelemetryData): Array<number | null> {
+  const lats = data.latitude ?? [];
+  const lngs = data.longitude ?? [];
+  let homeLat: number | null = null;
+  let homeLng: number | null = null;
+  for (let i = 0; i < lats.length; i += 1) {
+    const lat = lats[i];
+    const lng = lngs[i];
+    if (typeof lat === 'number' && typeof lng === 'number') {
+      homeLat = lat;
+      homeLng = lng;
+      break;
+    }
+  }
+  if (homeLat === null || homeLng === null) {
+    return data.time.map(() => null);
+  }
+
+  return data.time.map((_, index) => {
+    const lat = lats[index];
+    const lng = lngs[index];
+    if (typeof lat !== 'number' || typeof lng !== 'number') return null;
+    return haversineDistance(homeLat, homeLng, lat, lng);
+  });
+}
+
+function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const toRad = (value: number) => (value * Math.PI) / 180;
+  const r = 6371000;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return r * c;
 }
 
 function createGpsChart(

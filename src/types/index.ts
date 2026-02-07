@@ -17,6 +17,8 @@ export interface Flight {
   totalDistance: number | null;
   maxAltitude: number | null;
   maxSpeed: number | null;
+  homeLat?: number | null;
+  homeLon?: number | null;
   pointCount: number | null;
 }
 
@@ -24,15 +26,22 @@ export interface Flight {
 export interface TelemetryData {
   /** Time in seconds from flight start */
   time: number[];
+  latitude?: (number | null)[];
+  longitude?: (number | null)[];
   altitude?: (number | null)[];
   height: (number | null)[];
   vpsHeight: (number | null)[];
   speed: (number | null)[];
+  velocityX?: (number | null)[];
+  velocityY?: (number | null)[];
+  velocityZ?: (number | null)[];
   battery: (number | null)[];
   batteryVoltage: (number | null)[];
   batteryTemp: (number | null)[];
   satellites: (number | null)[];
   rcSignal: (number | null)[];
+  rcUplink?: (number | null)[];
+  rcDownlink?: (number | null)[];
   pitch: (number | null)[];
   roll: (number | null)[];
   yaw: (number | null)[];

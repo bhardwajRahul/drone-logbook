@@ -45,20 +45,29 @@ export function FlightStats({ data }: FlightStatsProps) {
 
   const buildCsv = () => {
     const trackAligned = data.track.length === telemetry.time.length;
+    const latSeries = telemetry.latitude ?? [];
+    const lngSeries = telemetry.longitude ?? [];
+    const distanceToHome = computeDistanceToHomeSeries(telemetry);
     const headers = [
       'time_s',
       'lat',
       'lng',
       'alt_m',
+      'distance_to_home_m',
       'height_m',
       'vps_height_m',
       'altitude_m',
       'speed_ms',
+      'velocity_x_ms',
+      'velocity_y_ms',
+      'velocity_z_ms',
       'battery_percent',
       'battery_voltage_v',
       'battery_temp_c',
       'satellites',
       'rc_signal',
+      'rc_uplink',
+      'rc_downlink',
       'pitch_deg',
       'roll_deg',
       'yaw_deg',
@@ -79,20 +88,31 @@ export function FlightStats({ data }: FlightStatsProps) {
 
     const rows = telemetry.time.map((time, index) => {
       const track = trackAligned ? data.track[index] : null;
+      const lat = track ? track[1] : latSeries[index];
+      const lng = track ? track[0] : lngSeries[index];
+      const alt = track ? track[2] : '';
       const values = [
         String(time),
-        track ? String(track[1]) : '',
-        track ? String(track[0]) : '',
-        track ? String(track[2]) : '',
+        lat === null || lat === undefined ? '' : String(lat),
+        lng === null || lng === undefined ? '' : String(lng),
+        alt === null || alt === undefined ? '' : String(alt),
+        distanceToHome[index] === null || distanceToHome[index] === undefined
+          ? ''
+          : String(distanceToHome[index]),
         getValue(telemetry.height, index),
         getValue(telemetry.vpsHeight, index),
         getValue(telemetry.altitude, index),
         getValue(telemetry.speed, index),
+        getValue(telemetry.velocityX, index),
+        getValue(telemetry.velocityY, index),
+        getValue(telemetry.velocityZ, index),
         getValue(telemetry.battery, index),
         getValue(telemetry.batteryVoltage, index),
         getValue(telemetry.batteryTemp, index),
         getValue(telemetry.satellites, index),
         getValue(telemetry.rcSignal, index),
+        getValue(telemetry.rcUplink, index),
+        getValue(telemetry.rcDownlink, index),
         getValue(telemetry.pitch, index),
         getValue(telemetry.roll, index),
         getValue(telemetry.yaw, index),
@@ -110,6 +130,9 @@ export function FlightStats({ data }: FlightStatsProps) {
         flight,
         telemetry,
         track: data.track,
+        derived: {
+          distanceToHome: computeDistanceToHomeSeries(telemetry),
+        },
       },
       null,
       2
@@ -471,5 +494,43 @@ function ChevronIcon() {
       />
     </svg>
   );
+}
+
+function computeDistanceToHomeSeries(telemetry: FlightDataResponse['telemetry']) {
+  const lats = telemetry.latitude ?? [];
+  const lngs = telemetry.longitude ?? [];
+  let homeLat: number | null = null;
+  let homeLng: number | null = null;
+  for (let i = 0; i < lats.length; i += 1) {
+    const lat = lats[i];
+    const lng = lngs[i];
+    if (typeof lat === 'number' && typeof lng === 'number') {
+      homeLat = lat;
+      homeLng = lng;
+      break;
+    }
+  }
+  if (homeLat === null || homeLng === null) {
+    return telemetry.time.map(() => null);
+  }
+
+  return telemetry.time.map((_, index) => {
+    const lat = lats[index];
+    const lng = lngs[index];
+    if (typeof lat !== 'number' || typeof lng !== 'number') return null;
+    return haversineDistance(homeLat, homeLng, lat, lng);
+  });
+}
+
+function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const toRad = (value: number) => (value * Math.PI) / 180;
+  const r = 6371000;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return r * c;
 }
 
