@@ -151,3 +151,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 - [dji-log-parser](https://github.com/lvauvillier/dji-log-parser) - DJI log parsing
 - [DuckDB](https://duckdb.org/) - Analytical database
 - [Tauri](https://tauri.app/) - Desktop app framework
+

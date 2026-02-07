@@ -18,6 +18,7 @@ interface FlightState {
   error: string | null;
   unitSystem: 'metric' | 'imperial';
   themeMode: 'system' | 'dark' | 'light';
+  donationAcknowledged: boolean;
 
   // Actions
   loadFlights: () => Promise<void>;
@@ -28,6 +29,7 @@ interface FlightState {
   updateFlightName: (flightId: number, displayName: string) => Promise<void>;
   setUnitSystem: (unitSystem: 'metric' | 'imperial') => void;
   setThemeMode: (themeMode: 'system' | 'dark' | 'light') => void;
+  setDonationAcknowledged: (value: boolean) => void;
   clearSelection: () => void;
   clearError: () => void;
 }
@@ -52,6 +54,10 @@ export const useFlightStore = create<FlightState>((set, get) => ({
       ? stored
       : 'system';
   })(),
+  donationAcknowledged:
+    typeof localStorage !== 'undefined'
+      ? localStorage.getItem('donationAcknowledged') === 'true'
+      : false,
 
   // Load all flights from database
   loadFlights: async () => {
@@ -196,6 +202,13 @@ export const useFlightStore = create<FlightState>((set, get) => ({
       localStorage.setItem('themeMode', themeMode);
     }
     set({ themeMode });
+  },
+
+  setDonationAcknowledged: (value) => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('donationAcknowledged', String(value));
+    }
+    set({ donationAcknowledged: value });
   },
 
   clearSelection: () =>
