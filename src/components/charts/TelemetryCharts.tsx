@@ -715,7 +715,7 @@ function createRcSignalChart(
       ? [
           {
             name: 'RC Signal',
-            type: 'line',
+            type: 'line' as const,
             data: data.rcSignal,
             smooth: true,
             symbol: 'none',
@@ -731,7 +731,7 @@ function createRcSignalChart(
       : [
           {
             name: 'RC Uplink',
-            type: 'line',
+            type: 'line' as const,
             data: rcUplink,
             smooth: true,
             symbol: 'none',
@@ -745,7 +745,7 @@ function createRcSignalChart(
           },
           {
             name: 'RC Downlink',
-            type: 'line',
+            type: 'line' as const,
             data: rcDownlink,
             smooth: true,
             symbol: 'none',
