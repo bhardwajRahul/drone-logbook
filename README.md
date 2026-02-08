@@ -2,7 +2,16 @@
     <img src="src-tauri/icons/icon.png" alt="DJI Log Viewer" width="96" />
 </p>
 
+<p align="center">
+    <a href="https://github.com/arpanghosh8453/dji-logbook/releases">
+        <img src="assets/download-button.svg" alt="Download Latest Release" height="48"/>
+    </a>
+</p>
+
+<hr>
+
 <h1 align="center">DJI Flight Log Viewer</h1>
+
 
 <p align="center">A high-performance application for analyzing DJI drone flight logs. Available as a Tauri v2 desktop app or a Docker-deployable web app. Built with DuckDB and React.</p>
 
