@@ -53,6 +53,24 @@ body.modal-open .overflow-y-auto {
   overflow: hidden !important;
 }
 
+body.overlay-active {
+  overflow: hidden !important;
+}
+
+body.overlay-active *::-webkit-scrollbar {
+  display: none !important;
+}
+
+body.overlay-active * {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+body.overlay-active .overflow-auto,
+body.overlay-active .overflow-y-auto {
+  overflow: hidden !important;
+}
+
 /* Custom scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;

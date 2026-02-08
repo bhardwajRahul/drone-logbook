@@ -10,9 +10,13 @@ import {
   useRef,
   useState,
 } from 'react';
+import { invoke } from '@tauri-apps/api/core';
+import { open } from '@tauri-apps/plugin-dialog';
+import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { useFlightStore } from '@/stores/flightStore';
 import { formatDuration, formatDateTime, formatDistance } from '@/lib/utils';
 import { DayPicker, type DateRange } from 'react-day-picker';
+import type { FlightDataResponse, Flight, TelemetryData } from '@/types';
 import 'react-day-picker/dist/style.css';
 
 export function FlightList({ showControls = true }: { showControls?: boolean } = {}) {
@@ -27,6 +31,7 @@ export function FlightList({ showControls = true }: { showControls?: boolean } =
     useFlightStore();
   const [editingId, setEditingId] = useState<number | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const [draftName, setDraftName] = useState('');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [isDateOpen, setIsDateOpen] = useState(false);
@@ -43,6 +48,11 @@ export function FlightList({ showControls = true }: { showControls?: boolean } =
   >('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [isSortOpen, setIsSortOpen] = useState(false);
+  const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState({ done: 0, total: 0, currentFile: '' });
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteProgress, setDeleteProgress] = useState({ done: 0, total: 0, currentFile: '' });
   const dateButtonRef = useRef<HTMLButtonElement | null>(null);
   const sortButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -60,6 +70,21 @@ export function FlightList({ showControls = true }: { showControls?: boolean } =
     date.setHours(0, 0, 0, 0);
     return date;
   }, []);
+
+  // Prevent all scrolling when overlay is active
+  useEffect(() => {
+    if (isExporting || isDeleting) {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+      // Add class to hide all scrollbars
+      document.body.classList.add('overlay-active');
+      return () => {
+        document.body.style.overflow = '';
+        document.documentElement.style.overflow = '';
+        document.body.classList.remove('overlay-active');
+      };
+    }
+  }, [isExporting, isDeleting]);
 
   const dateRangeLabel = useMemo(() => {
     if (!dateRange?.from && !dateRange?.to) return 'Any date';
@@ -235,6 +260,383 @@ export function FlightList({ showControls = true }: { showControls?: boolean } =
     return sortOptions.find((option) => option.value === sortOption)?.label ?? 'Sort';
   }, [sortOption, sortOptions]);
 
+  const sanitizeFileName = (name: string): string => {
+    return name.replace(/[^a-zA-Z0-9_\-\.]/g, '_').replace(/_{2,}/g, '_');
+  };
+
+  const buildCsv = (data: FlightDataResponse): string => {
+    const { telemetry } = data;
+    if (!telemetry.time || telemetry.time.length === 0) return '';
+
+    const trackAligned = data.track.length === telemetry.time.length;
+    const latSeries = telemetry.latitude ?? [];
+    const lngSeries = telemetry.longitude ?? [];
+    
+    // Calculate distance to home
+    const computeDistanceToHome = () => {
+      const lats = telemetry.latitude ?? [];
+      const lngs = telemetry.longitude ?? [];
+      let homeLat: number | null = null;
+      let homeLng: number | null = null;
+      for (let i = 0; i < lats.length; i += 1) {
+        const lat = lats[i];
+        const lng = lngs[i];
+        if (typeof lat === 'number' && typeof lng === 'number') {
+          homeLat = lat;
+          homeLng = lng;
+          break;
+        }
+      }
+      if (homeLat === null || homeLng === null) {
+        return telemetry.time.map(() => null);
+      }
+
+      return telemetry.time.map((_, index) => {
+        const lat = lats[index];
+        const lng = lngs[index];
+        if (typeof lat !== 'number' || typeof lng !== 'number') return null;
+        const toRad = (value: number) => (value * Math.PI) / 180;
+        const r = 6371000;
+        const dLat = toRad(lat - homeLat);
+        const dLon = toRad(lng - homeLng);
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(toRad(homeLat)) * Math.cos(toRad(lat)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return r * c;
+      });
+    };
+
+    const distanceToHome = computeDistanceToHome();
+
+    const headers = [
+      'time_s',
+      'lat',
+      'lng',
+      'alt_m',
+      'distance_to_home_m',
+      'height_m',
+      'vps_height_m',
+      'altitude_m',
+      'speed_ms',
+      'velocity_x_ms',
+      'velocity_y_ms',
+      'velocity_z_ms',
+      'battery_percent',
+      'battery_voltage_v',
+      'battery_temp_c',
+      'satellites',
+      'rc_signal',
+      'rc_uplink',
+      'rc_downlink',
+      'pitch_deg',
+      'roll_deg',
+      'yaw_deg',
+    ];
+
+    const escapeCsv = (value: string) => {
+      if (value.includes('"')) value = value.replace(/"/g, '""');
+      if (value.includes(',') || value.includes('\n') || value.includes('\r')) {
+        return `"${value}"`;
+      }
+      return value;
+    };
+
+    const getValue = (arr: (number | null)[] | undefined, index: number) => {
+      const val = arr?.[index];
+      return val === null || val === undefined ? '' : String(val);
+    };
+
+    const rows = telemetry.time.map((time, index) => {
+      const track = trackAligned ? data.track[index] : null;
+      const lat = track ? track[1] : latSeries[index];
+      const lng = track ? track[0] : lngSeries[index];
+      const alt = track ? track[2] : '';
+      const values = [
+        String(time),
+        lat === null || lat === undefined ? '' : String(lat),
+        lng === null || lng === undefined ? '' : String(lng),
+        alt === null || alt === undefined ? '' : String(alt),
+        distanceToHome[index] === null || distanceToHome[index] === undefined
+          ? ''
+          : String(distanceToHome[index]),
+        getValue(telemetry.height, index),
+        getValue(telemetry.vpsHeight, index),
+        getValue(telemetry.altitude, index),
+        getValue(telemetry.speed, index),
+        getValue(telemetry.velocityX, index),
+        getValue(telemetry.velocityY, index),
+        getValue(telemetry.velocityZ, index),
+        getValue(telemetry.battery, index),
+        getValue(telemetry.batteryVoltage, index),
+        getValue(telemetry.batteryTemp, index),
+        getValue(telemetry.satellites, index),
+        getValue(telemetry.rcSignal, index),
+        getValue(telemetry.rcUplink, index),
+        getValue(telemetry.rcDownlink, index),
+        getValue(telemetry.pitch, index),
+        getValue(telemetry.roll, index),
+        getValue(telemetry.yaw, index),
+      ].map(escapeCsv);
+      return values.join(',');
+    });
+
+    return [headers.join(','), ...rows].join('\n');
+  };
+
+  const buildJson = (data: FlightDataResponse): string => {
+    return JSON.stringify(data, null, 2);
+  };
+
+  const escapeXml = (str: string | number | null | undefined): string => {
+    if (str == null) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  };
+
+  const buildGpx = (data: FlightDataResponse): string => {
+    if (!data.track || data.track.length === 0) return '';
+
+    const points = data.track
+      .map(([lng, lat, alt], index) => {
+        if (lat == null || lng == null) return null;
+        const time = data.telemetry.time && data.telemetry.time[index];
+        return `    <trkpt lat="${lat}" lon="${lng}">
+      ${alt != null ? `<ele>${alt}</ele>` : ''}
+      ${time != null ? `<time>${new Date(time * 1000).toISOString()}</time>` : ''}
+    </trkpt>`;
+      })
+      .filter(Boolean)
+      .join('\n');
+
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="DJI Logbook">
+  <trk>
+    <name>${escapeXml((data.flight as any).original_filename || 'Flight')}</name>
+    <trkseg>
+${points}
+    </trkseg>
+  </trk>
+</gpx>`;
+  };
+
+  const buildKml = (data: FlightDataResponse): string => {
+    if (!data.track || data.track.length === 0) return '';
+
+    const coordinates = data.track
+      .map(([lng, lat, alt]) => {
+        if (lat == null || lng == null) return null;
+        return `${lng},${lat}${alt != null ? `,${alt}` : ''}`;
+      })
+      .filter(Boolean)
+      .join(' ');
+
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>${escapeXml((data.flight as any).original_filename || 'Flight')}</name>
+    <Placemark>
+      <name>Flight Path</name>
+      <LineString>
+        <coordinates>${coordinates}</coordinates>
+      </LineString>
+    </Placemark>
+  </Document>
+</kml>`;
+  };
+
+  const buildSummaryCsv = (flightsData: { flight: Flight; data: FlightDataResponse }[]): string => {
+    const headers = [
+      'Aircraft SN',
+      'Battery SN',
+      'Date',
+      'Takeoff Time',
+      'Duration',
+      'Landing Time',
+      'Travelled Distance (m)',
+      'Max Altitude (m)',
+      'Max Distance from Home (m)',
+      'Max Velocity (m/s)',
+      'Takeoff Lat',
+      'Takeoff Lon',
+    ];
+
+    const escapeCsv = (value: string) => {
+      if (value.includes('"')) value = value.replace(/"/g, '""');
+      if (value.includes(',') || value.includes('\n') || value.includes('\r')) {
+        return `"${value}"`;
+      }
+      return value;
+    };
+
+    const formatDuration = (seconds: number | null): string => {
+      if (!seconds) return '';
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}m ${secs}s`;
+    };
+
+    const formatTime = (isoString: string | null): string => {
+      if (!isoString) return '';
+      const date = new Date(isoString);
+      return date.toTimeString().slice(0, 5); // HH:MM
+    };
+
+    const formatDate = (isoString: string | null): string => {
+      if (!isoString) return '';
+      const date = new Date(isoString);
+      return date.toISOString().split('T')[0]; // YYYY-MM-DD
+    };
+
+    const calculateLandingTime = (takeoffTime: string | null, durationSecs: number | null): string => {
+      if (!takeoffTime || !durationSecs) return '';
+      const takeoff = new Date(takeoffTime);
+      const landing = new Date(takeoff.getTime() + durationSecs * 1000);
+      return landing.toTimeString().slice(0, 5); // HH:MM
+    };
+
+    const calculateMaxDistanceFromHome = (telemetry: TelemetryData): number | null => {
+      const lats = telemetry.latitude ?? [];
+      const lngs = telemetry.longitude ?? [];
+      
+      let homeLat: number | null = null;
+      let homeLng: number | null = null;
+      for (let i = 0; i < lats.length; i++) {
+        const lat = lats[i];
+        const lng = lngs[i];
+        if (typeof lat === 'number' && typeof lng === 'number') {
+          homeLat = lat;
+          homeLng = lng;
+          break;
+        }
+      }
+      
+      if (homeLat === null || homeLng === null) return null;
+
+      let maxDistance = 0;
+      for (let i = 0; i < lats.length; i++) {
+        const lat = lats[i];
+        const lng = lngs[i];
+        if (typeof lat !== 'number' || typeof lng !== 'number') continue;
+        
+        const toRad = (value: number) => (value * Math.PI) / 180;
+        const r = 6371000;
+        const dLat = toRad(lat - homeLat);
+        const dLon = toRad(lng - homeLng);
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(toRad(homeLat)) * Math.cos(toRad(lat)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const distance = r * c;
+        
+        if (distance > maxDistance) maxDistance = distance;
+      }
+      
+      return maxDistance;
+    };
+
+    const rows = flightsData.map(({ flight, data }) => {
+      const maxDistanceFromHome = calculateMaxDistanceFromHome(data.telemetry);
+      const takeoffLat = flight.homeLat ?? (data.telemetry.latitude?.[0] || null);
+      const takeoffLon = flight.homeLon ?? (data.telemetry.longitude?.[0] || null);
+
+      return [
+        escapeCsv(flight.droneSerial || ''),
+        escapeCsv(flight.batterySerial || ''),
+        escapeCsv(formatDate(flight.startTime)),
+        escapeCsv(formatTime(flight.startTime)),
+        escapeCsv(formatDuration(flight.durationSecs)),
+        escapeCsv(calculateLandingTime(flight.startTime, flight.durationSecs)),
+        escapeCsv(flight.totalDistance != null ? flight.totalDistance.toFixed(2) : ''),
+        escapeCsv(flight.maxAltitude != null ? flight.maxAltitude.toFixed(2) : ''),
+        escapeCsv(maxDistanceFromHome != null ? maxDistanceFromHome.toFixed(2) : ''),
+        escapeCsv(flight.maxSpeed != null ? flight.maxSpeed.toFixed(2) : ''),
+        escapeCsv(takeoffLat != null ? takeoffLat.toFixed(7) : ''),
+        escapeCsv(takeoffLon != null ? takeoffLon.toFixed(7) : ''),
+      ].join(',');
+    });
+
+    return [headers.join(','), ...rows].join('\n');
+  };
+
+  const handleBulkExport = async (format: string, extension: string) => {
+    try {
+      const dirPath = await open({ directory: true, multiple: false });
+      if (!dirPath) return;
+
+      setIsExporting(true);
+      setExportProgress({ done: 0, total: filteredFlights.length, currentFile: '' });
+      
+      const flightsData: { flight: Flight; data: FlightDataResponse }[] = [];
+
+      for (let i = 0; i < filteredFlights.length; i++) {
+        const flight = filteredFlights[i];
+        const safeName = sanitizeFileName((flight as any).original_filename || `flight_${flight.id}`);
+        setExportProgress({ done: i, total: filteredFlights.length, currentFile: safeName });
+        
+        try {
+          const data: FlightDataResponse = await invoke('get_flight_data', {
+            flightId: flight.id,
+            maxPoints: 999999999,
+          });
+
+          // Store for summary
+          flightsData.push({ flight, data });
+
+          let content = '';
+          if (format === 'csv') content = buildCsv(data);
+          else if (format === 'json') content = buildJson(data);
+          else if (format === 'gpx') content = buildGpx(data);
+          else if (format === 'kml') content = buildKml(data);
+
+          await writeTextFile(`${dirPath}/${safeName}.${extension}`, content);
+        } catch (err) {
+          console.error(`Failed to export flight ${flight.id}:`, err);
+        }
+      }
+
+      // Write summary CSV if multiple flights
+      if (flightsData.length > 1) {
+        try {
+          const summaryCsv = buildSummaryCsv(flightsData);
+          await writeTextFile(`${dirPath}/filtered_flights_summary.csv`, summaryCsv);
+        } catch (err) {
+          console.error('Failed to write summary CSV:', err);
+        }
+      }
+
+      setExportProgress({ done: filteredFlights.length, total: filteredFlights.length, currentFile: '' });
+      setTimeout(() => setIsExporting(false), 1000);
+    } catch (err) {
+      console.error('Export failed:', err);
+      setIsExporting(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      setIsDeleting(true);
+      setConfirmBulkDelete(false);
+      setDeleteProgress({ done: 0, total: filteredFlights.length, currentFile: '' });
+
+      for (let i = 0; i < filteredFlights.length; i++) {
+        const flight = filteredFlights[i];
+        setDeleteProgress({ done: i, total: filteredFlights.length, currentFile: flight.fileName || '' });
+        await deleteFlight(flight.id);
+      }
+
+      setDeleteProgress({ done: filteredFlights.length, total: filteredFlights.length, currentFile: '' });
+      setTimeout(() => setIsDeleting(false), 1000);
+    } catch (err) {
+      console.error('Delete failed:', err);
+      setIsDeleting(false);
+    }
+  };
+
   if (flights.length === 0) {
     return (
       <div className="p-4 text-center text-gray-500">
@@ -247,12 +649,12 @@ export function FlightList({ showControls = true }: { showControls?: boolean } =
   }
 
   return (
-    <div
-      className="divide-y divide-gray-700/50"
-      onClick={() => setConfirmDeleteId(null)}
-    >
+    <div className="flex flex-col h-full" onClick={() => {
+      setConfirmDeleteId(null);
+      setConfirmBulkDelete(false);
+    }}>
       {showControls && (
-        <div className="p-3 border-b border-gray-700 space-y-3">
+        <div className="p-3 border-b border-gray-700 space-y-3 flex-shrink-0">
         <div>
           <label className="block text-xs text-gray-400 mb-1">Date range</label>
           <button
@@ -318,6 +720,22 @@ export function FlightList({ showControls = true }: { showControls?: boolean } =
             </>
           )}
         </div>
+        {/* Filtered count and Clear filters */}
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-gray-400">
+            {filteredFlights.length} flight(s) selected
+          </span>
+          <button
+            onClick={() => {
+              setDateRange(undefined);
+              setSelectedDrone('');
+              setSelectedBattery('');
+            }}
+            className="text-xs text-gray-400 hover:text-white"
+          >
+            Clear filters
+          </button>
+        </div>
 
         <div>
           <label className="block text-xs text-gray-400 mb-1">Drone</label>
@@ -351,16 +769,116 @@ export function FlightList({ showControls = true }: { showControls?: boolean } =
           </select>
         </div>
 
-        <button
-          onClick={() => {
-            setDateRange(undefined);
-            setSelectedDrone('');
-            setSelectedBattery('');
-          }}
-          className="text-xs text-gray-400 hover:text-white"
-        >
-          Clear filters
-        </button>
+        {/* Filtered count and Clear filters on same line */}
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-gray-400">
+            {filteredFlights.length} flight(s) selected
+          </span>
+          <button
+            onClick={() => {
+              setDateRange(undefined);
+              setSelectedDrone('');
+              setSelectedBattery('');
+            }}
+            className="text-xs text-gray-400 hover:text-white"
+          >
+            Clear filters
+          </button>
+        </div>
+
+        {/* Export and Delete Filtered Buttons */}
+        <div className="flex items-center gap-2">
+          {/* Export Dropdown */}
+          <div className="relative flex-1">
+            <button
+              onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
+              disabled={filteredFlights.length === 0}
+              className={`h-8 px-3 rounded-lg text-xs font-medium transition-colors w-full ${
+                filteredFlights.length > 0
+                  ? 'bg-dji-primary/20 text-dji-primary hover:bg-dji-primary/30'
+                  : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              Export filtered
+            </button>
+
+            {isExportDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setIsExportDropdownOpen(false)} 
+                />
+                <div className="absolute left-0 top-full mt-2 w-full bg-dji-surface border border-gray-700 rounded-lg shadow-xl z-50">
+                  <div className="p-2">
+                    {[
+                      { id: 'csv', label: 'CSV', ext: 'csv' },
+                      { id: 'json', label: 'JSON', ext: 'json' },
+                      { id: 'gpx', label: 'GPX', ext: 'gpx' },
+                      { id: 'kml', label: 'KML', ext: 'kml' },
+                    ].map(opt => (
+                      <button
+                        key={opt.id}
+                        onClick={() => {
+                          setIsExportDropdownOpen(false);
+                          handleBulkExport(opt.id, opt.ext);
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-700/40 rounded transition-colors"
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Delete Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setConfirmBulkDelete(true);
+            }}
+            disabled={filteredFlights.length === 0}
+            className={`h-8 px-3 rounded-lg text-xs font-medium transition-colors flex-1 ${
+              filteredFlights.length > 0
+                ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            Delete filtered
+          </button>
+        </div>
+
+        {/* Bulk Delete Confirmation */}
+        {confirmBulkDelete && filteredFlights.length > 0 && (
+          <div 
+            className="flex items-center gap-2 text-xs"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span className="text-gray-400">
+              Delete {filteredFlights.length} filtered flight{filteredFlights.length !== 1 ? 's' : ''}?
+            </span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleBulkDelete();
+              }}
+              className="text-xs text-red-400 hover:text-red-300"
+            >
+              Yes
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setConfirmBulkDelete(false);
+              }}
+              className="text-xs text-gray-400 hover:text-gray-200"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
 
         <div className="flex items-center gap-2">
           <input
@@ -420,6 +938,8 @@ export function FlightList({ showControls = true }: { showControls?: boolean } =
       </div>
       )}
 
+      {/* Scrollable flight list */}
+      <div className="flex-1 overflow-y-auto divide-y divide-gray-700/50">
       {sortedFlights.map((flight) => (
         <div
           key={flight.id}
@@ -564,8 +1084,59 @@ export function FlightList({ showControls = true }: { showControls?: boolean } =
         <div className="p-4 text-center text-gray-500 text-xs">
           No flights match the current filters or search.
         </div>
+      )}      {showControls && sortedFlights.length === 0 && normalizedSearch.length === 0 && (
+        <div className="p-4 text-center text-gray-500 text-xs">
+          No flights match the current filters or search.
+        </div>
       )}
-    </div>
+      </div>
+
+      {/* Export Progress Overlay */}
+      {isExporting && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-dji-surface border border-gray-700 rounded-xl p-6 min-w-[320px] shadow-2xl">
+            <h3 className="text-lg font-semibold mb-4">Exporting Flights</h3>
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm text-gray-400">
+                <span>Progress</span>
+                <span>{exportProgress.done} / {exportProgress.total}</span>
+              </div>
+              <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
+                <div
+                  className="h-full bg-dji-primary transition-all duration-300"
+                  style={{ width: `${(exportProgress.done / exportProgress.total) * 100}%` }}
+                />
+              </div>
+              {exportProgress.currentFile && (
+                <div className="text-xs text-gray-500 truncate">
+                  Current: {exportProgress.currentFile}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Progress Overlay */}
+      {isDeleting && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-dji-surface border border-gray-700 rounded-xl p-6 min-w-[320px] shadow-2xl">
+            <h3 className="text-lg font-semibold mb-4">Deleting Flights</h3>
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm text-gray-400">
+                <span>Progress</span>
+                <span>{deleteProgress.done} / {deleteProgress.total}</span>
+              </div>
+              <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
+                <div
+                  className="h-full bg-red-500 transition-all duration-300"
+                  style={{ width: `${(deleteProgress.done / deleteProgress.total) * 100}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}    </div>
   );
 }
 
