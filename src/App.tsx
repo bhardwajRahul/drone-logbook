@@ -91,7 +91,7 @@ function App() {
   };
 
   return (
-    <div className="w-full h-full bg-dji-dark">
+    <div className="w-full h-full flex flex-col bg-dji-dark overflow-hidden">
       {showDonationBanner && (
         <div
           className={`w-full border-b border-dji-primary/40 text-gray-100 ${
@@ -166,7 +166,9 @@ function App() {
 
       {/* Main Dashboard */}
       <AppErrorBoundary>
-        <Dashboard />
+        <div className="flex-1 min-h-0">
+          <Dashboard />
+        </div>
       </AppErrorBoundary>
     </div>
   );

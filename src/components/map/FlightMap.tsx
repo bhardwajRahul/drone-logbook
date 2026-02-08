@@ -7,7 +7,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import Map, { NavigationControl, Marker } from 'react-map-gl/maplibre';
 import type { MapRef } from 'react-map-gl/maplibre';
 import type { StyleSpecification } from 'maplibre-gl';
-import { PathLayer } from '@deck.gl/layers';
+import { PathLayer, ScatterplotLayer } from '@deck.gl/layers';
 import DeckGL from '@deck.gl/react';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { getTrackCenter, calculateBounds, formatAltitude, formatSpeed, formatDistance } from '@/lib/utils';
@@ -37,7 +37,7 @@ const SATELLITE_STYLE: StyleSpecification = {
         'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       ],
       tileSize: 256,
-      maxzoom: 19,
+      maxzoom: 18,
       attribution: 'Tiles © Esri',
     },
   },
@@ -46,6 +46,9 @@ const SATELLITE_STYLE: StyleSpecification = {
       id: 'satellite-base',
       type: 'raster',
       source: 'satellite',
+      paint: {
+        'raster-fade-duration': 150,
+      },
     },
   ],
 };
@@ -55,7 +58,7 @@ const TERRAIN_SOURCE = {
   type: 'raster-dem',
   url: 'https://demotiles.maplibre.org/terrain-tiles/tiles.json',
   tileSize: 256,
-  maxzoom: 14,
+  maxzoom: 12,
 } as const;
 
 const getSessionBool = (key: string, fallback: boolean) => {
@@ -200,6 +203,7 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, themeMode }: 
     return (window.sessionStorage.getItem('map:colorBy') as ColorByMode) || 'progress';
   });
   const [showTooltip, setShowTooltip] = useState(() => getSessionBool('map:showTooltip', true));
+  const [showAircraft, setShowAircraft] = useState(() => getSessionBool('map:showAircraft', true));
   const [hoverInfo, setHoverInfo] = useState<{
     x: number; y: number;
     height: number; speed: number; distance: number; progress: number;
@@ -208,6 +212,13 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, themeMode }: 
   const { unitSystem } = useFlightStore();
   const mapRef = useRef<MapRef | null>(null);
   const deckRef = useRef<any>(null);
+
+  // ─── Flight replay state ────────────────────────────────────────────
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [replayProgress, setReplayProgress] = useState(0); // 0–1
+  const [replaySpeed, setReplaySpeed] = useState(1);
+  const replayTimerRef = useRef<number | null>(null);
+  const lastFrameRef = useRef<number>(0);
 
   const resolvedTheme = useMemo(() => {
     if (themeMode === 'system') {
@@ -221,6 +232,137 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, themeMode }: 
   const activeMapStyle = useMemo(
     () => (isSatellite ? SATELLITE_STYLE : MAP_STYLES[resolvedTheme]),
     [isSatellite, resolvedTheme]
+  );
+
+  // ─── Flight replay animation loop ──────────────────────────────────
+  const effectiveDuration = useMemo(
+    () => (durationSecs && durationSecs > 0 ? durationSecs : track.length),
+    [durationSecs, track.length]
+  );
+
+  // Stop replay when track changes (new flight selected)
+  useEffect(() => {
+    setIsPlaying(false);
+    setReplayProgress(0);
+    if (replayTimerRef.current) {
+      cancelAnimationFrame(replayTimerRef.current);
+      replayTimerRef.current = null;
+    }
+  }, [track]);
+
+  useEffect(() => {
+    if (!isPlaying) {
+      if (replayTimerRef.current) {
+        cancelAnimationFrame(replayTimerRef.current);
+        replayTimerRef.current = null;
+      }
+      return;
+    }
+
+    lastFrameRef.current = performance.now();
+
+    const animate = (now: number) => {
+      const dt = (now - lastFrameRef.current) / 1000; // seconds elapsed
+      lastFrameRef.current = now;
+
+      setReplayProgress((prev) => {
+        const increment = (dt * replaySpeed) / effectiveDuration;
+        const next = prev + increment;
+        if (next >= 1) {
+          setIsPlaying(false);
+          return 1;
+        }
+        return next;
+      });
+
+      replayTimerRef.current = requestAnimationFrame(animate);
+    };
+
+    replayTimerRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (replayTimerRef.current) {
+        cancelAnimationFrame(replayTimerRef.current);
+        replayTimerRef.current = null;
+      }
+    };
+  }, [isPlaying, replaySpeed, effectiveDuration]);
+
+  // Compute current replay marker position by interpolating along the smoothed track
+  const replayMarkerPos = useMemo(() => {
+    if (track.length === 0) return null;
+    // Use raw track (not smoothed) so the index maps cleanly to flight time
+    const n = track.length;
+    const idx = replayProgress * (n - 1);
+    const lo = Math.floor(idx);
+    const hi = Math.min(lo + 1, n - 1);
+    const frac = idx - lo;
+    const lng = track[lo][0] + (track[hi][0] - track[lo][0]) * frac;
+    const lat = track[lo][1] + (track[hi][1] - track[lo][1]) * frac;
+    const alt = track[lo][2] + (track[hi][2] - track[lo][2]) * frac;
+    return { lng, lat, alt: is3D ? alt : 0 };
+  }, [track, replayProgress, is3D]);
+
+  // Build DeckGL replay marker layers (3D-aware)
+  const replayDeckLayers = useMemo(() => {
+    if (!showAircraft || !replayMarkerPos || (!isPlaying && replayProgress === 0)) return [];
+    const pos: [number, number, number] = [replayMarkerPos.lng, replayMarkerPos.lat, replayMarkerPos.alt];
+
+    return [
+      // Outer glow ring
+      new ScatterplotLayer({
+        id: 'replay-marker-glow',
+        data: [{ position: pos }],
+        getPosition: (d: { position: [number, number, number] }) => d.position,
+        getRadius: 14,
+        radiusUnits: 'pixels',
+        getFillColor: [0, 212, 170, 60],
+        stroked: false,
+        filled: true,
+        billboard: true,
+        parameters: { depthTest: false },
+      }),
+      // Main marker dot
+      new ScatterplotLayer({
+        id: 'replay-marker-dot',
+        data: [{ position: pos }],
+        getPosition: (d: { position: [number, number, number] }) => d.position,
+        getRadius: 7,
+        radiusUnits: 'pixels',
+        getFillColor: [0, 212, 170, 230],
+        getLineColor: [255, 255, 255, 255],
+        getLineWidth: 2,
+        lineWidthUnits: 'pixels',
+        stroked: true,
+        filled: true,
+        billboard: true,
+        parameters: { depthTest: false },
+      }),
+    ];
+  }, [showAircraft, replayMarkerPos, isPlaying, replayProgress]);
+
+  const handlePlayPause = useCallback(() => {
+    if (isPlaying) {
+      setIsPlaying(false);
+    } else {
+      // If at end, restart from beginning
+      if (replayProgress >= 1) setReplayProgress(0);
+      setIsPlaying(true);
+    }
+  }, [isPlaying, replayProgress]);
+
+  const handleReplaySeek = useCallback((value: number) => {
+    setReplayProgress(value);
+  }, []);
+
+  const formatReplayTime = useCallback(
+    (progress: number) => {
+      const totalSecs = Math.round(progress * effectiveDuration);
+      const mins = Math.floor(totalSecs / 60);
+      const secs = totalSecs % 60;
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    },
+    [effectiveDuration]
   );
 
   // Calculate center and bounds when track changes
@@ -396,23 +538,14 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, themeMode }: 
     const map = mapRef.current?.getMap();
     if (!map) return;
 
-    if (!map.getSource(TERRAIN_SOURCE_ID)) {
-      map.addSource(TERRAIN_SOURCE_ID, TERRAIN_SOURCE);
+    try {
+      if (!map.getSource(TERRAIN_SOURCE_ID)) {
+        map.addSource(TERRAIN_SOURCE_ID, TERRAIN_SOURCE);
+      }
+      map.setTerrain({ source: TERRAIN_SOURCE_ID, exaggeration: 1.4 });
+    } catch (e) {
+      console.warn('[FlightMap] Failed to enable terrain:', e);
     }
-
-    if (!map.getLayer('sky')) {
-      map.addLayer({
-        id: 'sky',
-        type: 'sky',
-        paint: {
-          'sky-type': 'atmosphere',
-          'sky-atmosphere-sun': [0.0, 0.0],
-          'sky-atmosphere-sun-intensity': 10,
-        },
-      } as any);
-    }
-
-    map.setTerrain({ source: TERRAIN_SOURCE_ID, exaggeration: 1.4 });
   }, []);
 
   const disableTerrain = useCallback(() => {
@@ -457,6 +590,16 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, themeMode }: 
   }, [showTooltip]);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.setItem('map:showAircraft', String(showAircraft));
+    }
+    if (!showAircraft) {
+      setIsPlaying(false);
+      setReplayProgress(0);
+    }
+  }, [showAircraft]);
+
+  useEffect(() => {
     if (is3D) {
       enableTerrain();
     }
@@ -495,6 +638,7 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, themeMode }: 
     >
       <Map
         {...viewState}
+        maxZoom={22}
         style={{ width: '100%', height: '100%', position: 'absolute', top: '0', right: '0', bottom: '0', left: '0' }}
         mapStyle={activeMapStyle}
         attributionControl={false}
@@ -524,6 +668,11 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, themeMode }: 
             label="Tooltip"
             checked={showTooltip}
             onChange={setShowTooltip}
+          />
+          <ToggleRow
+            label="Aircraft"
+            checked={showAircraft}
+            onChange={setShowAircraft}
           />
 
           {/* Color-by dropdown */}
@@ -587,12 +736,13 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, themeMode }: 
         ref={deckRef}
         viewState={viewState}
         controller={false}
-        layers={deckLayers}
+        layers={[...deckLayers, ...replayDeckLayers]}
         pickingRadius={12}
         style={{
           width: '100%', height: '100%',
           pointerEvents: 'none',
           position: 'absolute', top: '0', right: '0', bottom: '0', left: '0',
+          zIndex: '1',
         }}
       />
 
@@ -634,6 +784,70 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, themeMode }: 
           </div>
         </div>
       )}
+
+      {/* Flight Replay Controls */}
+      {showAircraft && track.length > 1 ? (
+        <div
+          className="absolute bottom-3 left-1/2 -translate-x-1/2 z-30 bg-dji-dark/90 backdrop-blur-sm border border-gray-700 rounded-xl px-3 py-2 shadow-xl flex items-center gap-3 min-w-[280px] max-w-[460px] w-[90%] sm:w-auto pointer-events-auto"
+        >
+          {/* Play / Pause */}
+          <button
+            type="button"
+            onClick={handlePlayPause}
+            className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-dji-accent/20 text-dji-accent hover:bg-dji-accent/30 transition-colors"
+            title={isPlaying ? 'Pause' : 'Play'}
+          >
+            {isPlaying ? (
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                <rect x="2" y="1" width="4" height="12" rx="1" />
+                <rect x="8" y="1" width="4" height="12" rx="1" />
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                <path d="M3 1.5V12.5L12 7L3 1.5Z" />
+              </svg>
+            )}
+          </button>
+
+          {/* Time */}
+          <span className="text-[11px] text-gray-400 tabular-nums flex-shrink-0 w-[36px] text-right">
+            {formatReplayTime(replayProgress)}
+          </span>
+
+          {/* Seek Slider */}
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.001"
+            value={replayProgress}
+            onChange={(e) => handleReplaySeek(Number(e.target.value))}
+            className="flex-1 h-1.5 rounded-full appearance-none cursor-pointer replay-slider"
+            style={{
+              background: `linear-gradient(to right, rgb(var(--dji-accent)) ${replayProgress * 100}%, #4a4e69 ${replayProgress * 100}%)`,
+            }}
+          />
+
+          {/* End Time */}
+          <span className="text-[11px] text-gray-400 tabular-nums flex-shrink-0 w-[36px]">
+            {formatReplayTime(1)}
+          </span>
+
+          {/* Speed */}
+          <select
+            value={replaySpeed}
+            onChange={(e) => setReplaySpeed(Number(e.target.value))}
+            className="flex-shrink-0 text-[11px] bg-transparent text-gray-300 border border-gray-600 rounded-md px-1.5 py-0.5 focus:outline-none cursor-pointer appearance-none text-center w-[42px]"
+          >
+            <option value={0.5}>½×</option>
+            <option value={1}>1×</option>
+            <option value={2}>2×</option>
+            <option value={4}>4×</option>
+            <option value={8}>8×</option>
+            <option value={16}>16×</option>
+          </select>
+        </div>
+      ) : null}
     </div>
   );
 }

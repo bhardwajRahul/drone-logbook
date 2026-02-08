@@ -15,6 +15,8 @@ export function FlightImporter() {
   const [batchMessage, setBatchMessage] = useState<string | null>(null);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const [currentFileName, setCurrentFileName] = useState<string | null>(null);
+  const [batchIndex, setBatchIndex] = useState(0);
+  const [batchTotal, setBatchTotal] = useState(0);
 
   const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -32,12 +34,15 @@ export function FlightImporter() {
 
     setBatchMessage(null);
     setIsBatchProcessing(true);
+    setBatchTotal(items.length);
+    setBatchIndex(0);
     let skipped = 0;
     let processed = 0;
 
     for (let index = 0; index < items.length; index += 1) {
       const item = items[index];
       const isLast = index === items.length - 1;
+      setBatchIndex(index + 1);
       const name =
         typeof item === 'string'
           ? getShortFileName(item)
@@ -62,6 +67,8 @@ export function FlightImporter() {
 
     setIsBatchProcessing(false);
     setCurrentFileName(null);
+    setBatchTotal(0);
+    setBatchIndex(0);
     if (skipped > 0) {
       setBatchMessage(
         `Import finished. ${processed} file${processed === 1 ? '' : 's'} processed, ` +
@@ -149,6 +156,11 @@ export function FlightImporter() {
               ? `Importing ${currentFileName}...`
               : 'Importing...'}
           </span>
+          {batchTotal > 0 && (
+            <span className="text-xs text-dji-primary font-medium">
+              {batchIndex} of {batchTotal} file{batchTotal !== 1 ? 's' : ''}
+            </span>
+          )}
         </div>
       ) : (
         <>

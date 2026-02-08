@@ -25,10 +25,25 @@ export function Dashboard() {
   } = useFlightStore();
   const [showSettings, setShowSettings] = useState(false);
   const [activeView, setActiveView] = useState<'flights' | 'overview'>('flights');
-  const [sidebarWidth, setSidebarWidth] = useState(288);
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    if (typeof localStorage !== 'undefined') {
+      const stored = localStorage.getItem('sidebarWidth');
+      if (stored) {
+        const parsed = Number(stored);
+        if (parsed >= 220 && parsed <= 420) return parsed;
+      }
+    }
+    return 288;
+  });
   const [isSidebarHidden, setIsSidebarHidden] = useState(false);
   const [mainSplit, setMainSplit] = useState(50);
   const resizingRef = useRef<null | 'sidebar' | 'main'>(null);
+
+  useEffect(() => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('sidebarWidth', String(sidebarWidth));
+    }
+  }, [sidebarWidth]);
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
@@ -92,7 +107,7 @@ export function Dashboard() {
   const appIcon = new URL('../../assets/icon.png', import.meta.url).href;
 
   return (
-    <div className={`flex h-screen ${showSettings ? 'modal-open' : ''}`}>
+    <div className={`flex h-full ${showSettings ? 'modal-open' : ''}`}>
       {/* Settings Modal */}
       <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
 
@@ -205,7 +220,7 @@ export function Dashboard() {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
         {isLoading ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="flex flex-col items-center gap-4">
@@ -240,10 +255,10 @@ export function Dashboard() {
             <FlightStats data={currentFlightData} />
 
             {/* Charts and Map Grid */}
-            <div id="main-panels" className="flex-1 flex gap-4 p-4 overflow-hidden">
+            <div id="main-panels" className="flex-1 min-h-0 flex gap-4 p-4 overflow-hidden">
               {/* Telemetry Charts */}
               <div
-                className="card overflow-hidden flex flex-col"
+                className="card overflow-hidden flex flex-col min-h-0"
                 style={{ flexBasis: `${mainSplit}%`, minWidth: 720 }}
               >
                 <div className="p-3 border-b border-gray-700">
@@ -268,11 +283,11 @@ export function Dashboard() {
               />
 
               {/* Flight Map */}
-              <div className="card overflow-hidden flex flex-col" style={{ flexBasis: `${100 - mainSplit}%` }}>
+              <div className="card flex flex-col overflow-hidden min-h-0" style={{ flexBasis: `${100 - mainSplit}%` }}>
                 <div className="p-3 border-b border-gray-700">
                   <h2 className="font-semibold text-white">Flight Path</h2>
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-h-0 relative">
                   <FlightMap
                     track={currentFlightData!.track}
                     homeLat={currentFlightData!.flight.homeLat}
