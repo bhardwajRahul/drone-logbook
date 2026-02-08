@@ -176,10 +176,6 @@ All flight data (DuckDB database, cached decryption keys) is stored in a Docker 
 - **react-map-gl + MapLibre**: Map visualization
 - **deck.gl**: 3D flight path overlay
 
-### Deployment
-- **Docker**: Multi-stage build (Rust → Node → Nginx) with Axum backend + static frontend
-- **GitHub Actions**: Desktop binaries via `tauri-action`, Docker images via GitHub Container Registry
-
 ## Project Structure
 
 ```
