@@ -18,6 +18,7 @@ import {
   type UnitSystem,
 } from '@/lib/utils';
 import { useFlightStore } from '@/stores/flightStore';
+import { FlightClusterMap } from './FlightClusterMap';
 
 function resolveThemeMode(mode: 'system' | 'dark' | 'light'): 'dark' | 'light' {
   if (mode === 'system') {
@@ -485,6 +486,14 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
           />
         </div>
       </div>
+
+      {/* Flight Locations Cluster Map */}
+      <FlightClusterMap
+        flights={filteredFlights}
+        unitSystem={unitSystem}
+        themeMode={themeMode}
+        onSelectFlight={onSelectFlight}
+      />
 
       {/* Battery Health & Top Flights Row */}
         <div className="grid grid-cols-2 gap-4">

@@ -308,6 +308,83 @@ body.theme-light .maplibregl-ctrl-group {
   border-top: 1px solid #4a4e69 !important;
 }
 
+/* Flight cluster map popup — light theme (default) */
+.flight-cluster-popup .maplibregl-popup-content {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 0;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.flight-cluster-popup .maplibregl-popup-tip {
+  border-top-color: #ffffff;
+}
+
+.flight-cluster-popup .popup-body {
+  background: #ffffff;
+}
+
+.flight-cluster-popup .popup-footer {
+  background: #ffffff;
+}
+
+.flight-cluster-popup .popup-stat-label {
+  color: #9ca3af;
+}
+
+.flight-cluster-popup .popup-stat-value {
+  color: #1f2937;
+}
+
+.flight-cluster-popup .maplibregl-popup-close-button {
+  font-size: 18px;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.7);
+  right: 6px;
+  top: 4px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  line-height: 1;
+}
+
+.flight-cluster-popup .maplibregl-popup-close-button:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Flight cluster map popup — dark theme */
+.flight-cluster-popup--dark .maplibregl-popup-content {
+  background: #1e1e2e;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.flight-cluster-popup--dark .maplibregl-popup-tip {
+  border-top-color: #1e1e2e;
+}
+
+.flight-cluster-popup--dark .popup-body {
+  background: #1e1e2e;
+}
+
+.flight-cluster-popup--dark .popup-footer {
+  background: #1e1e2e;
+}
+
+.flight-cluster-popup--dark .popup-stat-label {
+  color: #6b7280;
+}
+
+.flight-cluster-popup--dark .popup-stat-value {
+  color: #e5e7eb;
+}
+
 /* ECharts tooltip customization */
 .echarts-tooltip {
   background: #16213e !important;
