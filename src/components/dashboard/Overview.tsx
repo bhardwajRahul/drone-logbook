@@ -3,11 +3,12 @@
  * Features: filters, activity heatmap, donut charts, battery health, top flights
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { DayPicker, type DateRange } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 import type { BatteryHealthPoint, Flight, OverviewStats } from '@/types';
+import { Select } from '@/components/ui/Select';
 import {
   formatDistance,
   formatDuration,
@@ -45,11 +46,6 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
   // Filter state
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [isDateOpen, setIsDateOpen] = useState(false);
-  const [dateAnchor, setDateAnchor] = useState<{
-    top: number;
-    left: number;
-    width: number;
-  } | null>(null);
   const [selectedDrone, setSelectedDrone] = useState('');
   const [selectedBattery, setSelectedBattery] = useState('');
   const dateButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -81,30 +77,16 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
     return 'Any date';
   }, [dateFormatter, dateRange]);
 
-  const updateDateAnchor = useCallback(() => {
-    const rect = dateButtonRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    setDateAnchor({ top: rect.bottom + 8, left: rect.left, width: rect.width });
-  }, []);
-
   useEffect(() => {
     if (!isDateOpen) return;
-    updateDateAnchor();
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setIsDateOpen(false);
     };
 
-    window.addEventListener('resize', updateDateAnchor);
-    window.addEventListener('scroll', updateDateAnchor, true);
     document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      window.removeEventListener('resize', updateDateAnchor);
-      window.removeEventListener('scroll', updateDateAnchor, true);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isDateOpen, updateDateAnchor]);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isDateOpen]);
 
   // Drone options from flights
   const droneOptions = useMemo(() => {
@@ -316,7 +298,7 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
       <div className="sticky top-0 z-30 bg-dji-dark/95 backdrop-blur p-4 pb-2">
         <div className="card p-4">
         <div className="flex flex-wrap gap-4 items-end">
-          <div className="flex-1 min-w-[180px]">
+          <div className="flex-1 min-w-[180px] relative">
             <label className="block text-xs text-gray-400 mb-1">Date range</label>
             <button
               ref={dateButtonRef}
@@ -329,15 +311,13 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
               </span>
               <CalendarIcon />
             </button>
-            {isDateOpen && dateAnchor && (
+            {isDateOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setIsDateOpen(false)} />
                 <div
-                  className="fixed z-50 rounded-xl border border-gray-700 bg-dji-surface p-3 shadow-xl"
+                  className="absolute left-0 z-50 mt-1 rounded-xl border border-gray-700 bg-dji-surface p-3 shadow-xl"
                   style={{
-                    top: dateAnchor.top,
-                    left: dateAnchor.left,
-                    width: Math.max(320, dateAnchor.width),
+                    width: Math.max(320, dateButtonRef.current?.getBoundingClientRect().width ?? 320),
                   }}
                 >
                   <DayPicker
@@ -375,34 +355,28 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
 
           <div className="flex-1 min-w-[180px]">
             <label className="block text-xs text-gray-400 mb-1">Drone</label>
-            <select
+            <Select
               value={selectedDrone}
-              onChange={(e) => setSelectedDrone(e.target.value)}
-              className="input w-full text-xs h-8 px-3 py-0 leading-[1.2]"
-            >
-              <option value="">All drones</option>
-              {droneOptions.map((option) => (
-                <option key={option.key} value={option.key}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              onChange={setSelectedDrone}
+              className="text-xs h-8"
+              options={[
+                { value: '', label: 'All drones' },
+                ...droneOptions.map((option) => ({ value: option.key, label: option.label })),
+              ]}
+            />
           </div>
 
           <div className="flex-1 min-w-[180px]">
             <label className="block text-xs text-gray-400 mb-1">Battery serial</label>
-            <select
+            <Select
               value={selectedBattery}
-              onChange={(e) => setSelectedBattery(e.target.value)}
-              className="input w-full text-xs h-8 px-3 py-0 leading-[1.2]"
-            >
-              <option value="">All batteries</option>
-              {batteryOptions.map((serial) => (
-                <option key={serial} value={serial}>
-                  {getBatteryDisplayName(serial)}
-                </option>
-              ))}
-            </select>
+              onChange={setSelectedBattery}
+              className="text-xs h-8"
+              options={[
+                { value: '', label: 'All batteries' },
+                ...batteryOptions.map((serial) => ({ value: serial, label: getBatteryDisplayName(serial) })),
+              ]}
+            />
           </div>
 
           <span className="ml-auto text-xs text-gray-400 flex items-center h-8">

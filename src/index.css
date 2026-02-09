@@ -66,18 +66,6 @@ body.theme-light .hover\:text-gray-200:hover {
   color: #334155 !important;
 }
 
-/* Light mode: map controls dropdown — darker text & visible options */
-body.theme-light .map-select {
-  background-color: #f1f5f9 !important;
-  border-color: #cbd5e1 !important;
-  color: #1e293b !important;
-}
-
-body.theme-light .map-select option {
-  background-color: #ffffff !important;
-  color: #1e293b !important;
-}
-
 /* Light mode: map hover tooltip — light background with dark text */
 body.theme-light .map-tooltip {
   background-color: rgba(255, 255, 255, 0.95) !important;
@@ -227,33 +215,58 @@ body.theme-light ::-webkit-scrollbar-thumb:hover {
   }
 }
 
-select.input {
-  appearance: none;
-  background-color: rgb(var(--dji-dark)) !important;
-  color: #e2e8f0 !important;
-  padding-right: 2rem;
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%2394a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>');
-  background-repeat: no-repeat;
-  background-position: right 0.6rem center;
-  background-size: 0.9rem;
+/* Custom themed select component */
+.themed-select-trigger {
+  background-color: rgb(var(--dji-dark));
+  border: 1px solid #4b5563;
+  border-radius: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  color: #e2e8f0;
+  font-size: inherit;
+  line-height: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-select.input option,
-select.input optgroup {
-  background-color: #0f172a;
+.themed-select-trigger:focus {
+  outline: none;
+  border-color: rgb(var(--dji-primary));
+  box-shadow: 0 0 0 2px rgba(var(--dji-primary), 0.3);
+}
+
+.themed-select-dropdown {
+  background-color: #0f0f1a;
+  border-color: #4b5563;
+}
+
+.themed-select-option {
   color: #e2e8f0;
 }
 
-body.theme-light select.input {
-  background-color: #ffffff !important;
-  color: #0f172a !important;
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%23334155" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>');
+.themed-select-option:hover,
+.themed-select-option[data-active="true"] {
+  background-color: rgba(var(--dji-primary), 0.2);
 }
 
-body.theme-light select.input option,
-body.theme-light select.input optgroup {
+/* Light theme overrides */
+body.theme-light .themed-select-trigger {
   background-color: #ffffff;
+  border-color: #cbd5e1;
   color: #0f172a;
+}
+
+body.theme-light .themed-select-dropdown {
+  background-color: #ffffff;
+  border-color: #e2e8f0;
+}
+
+body.theme-light .themed-select-option {
+  color: #1e293b;
+}
+
+body.theme-light .themed-select-option:hover,
+body.theme-light .themed-select-option[data-active="true"] {
+  background-color: rgba(var(--dji-primary), 0.1);
 }
 
 body.theme-light .input {

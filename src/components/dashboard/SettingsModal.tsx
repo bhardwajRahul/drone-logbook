@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import * as api from '@/lib/api';
 import { useFlightStore } from '@/stores/flightStore';
+import { Select } from '@/components/ui/Select';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -150,14 +151,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Units
             </label>
-            <select
-              className="input w-full"
+            <Select
               value={unitSystem}
-              onChange={(e) => setUnitSystem(e.target.value as 'metric' | 'imperial')}
-            >
-              <option value="metric">Metric (m, km/h)</option>
-              <option value="imperial">Imperial (ft, mph)</option>
-            </select>
+              onChange={(v) => setUnitSystem(v as 'metric' | 'imperial')}
+              options={[
+                { value: 'metric', label: 'Metric (m, km/h)' },
+                { value: 'imperial', label: 'Imperial (ft, mph)' },
+              ]}
+            />
           </div>
 
           {/* Theme */}
@@ -165,15 +166,15 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Theme
             </label>
-            <select
-              className="input w-full"
+            <Select
               value={themeMode}
-              onChange={(e) => setThemeMode(e.target.value as 'system' | 'dark' | 'light')}
-            >
-              <option value="system">System</option>
-              <option value="dark">Dark</option>
-              <option value="light">Light</option>
-            </select>
+              onChange={(v) => setThemeMode(v as 'system' | 'dark' | 'light')}
+              options={[
+                { value: 'system', label: 'System' },
+                { value: 'dark', label: 'Dark' },
+                { value: 'light', label: 'Light' },
+              ]}
+            />
           </div>
 
           {/* API Key Section */}

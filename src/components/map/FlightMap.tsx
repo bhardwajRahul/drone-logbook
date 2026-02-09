@@ -12,6 +12,7 @@ import DeckGL from '@deck.gl/react';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { getTrackCenter, calculateBounds, formatAltitude, formatSpeed, formatDistance } from '@/lib/utils';
 import { useFlightStore } from '@/stores/flightStore';
+import { Select } from '@/components/ui/Select';
 
 interface FlightMapProps {
   track: [number, number, number][]; // [lng, lat, alt][]
@@ -678,18 +679,12 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, themeMode }: 
           {/* Color-by dropdown */}
           <div className="pt-1 border-t border-gray-600/50">
             <label className="block text-[10px] text-gray-400 mb-1 uppercase tracking-wide">Color by</label>
-            <select
+            <Select
               value={colorBy}
-              onChange={(e) => setColorBy(e.target.value as ColorByMode)}
-              className="map-select w-full text-xs bg-dji-surface border border-gray-600 text-gray-200 rounded-md px-2 py-1 focus:outline-none focus:border-dji-primary appearance-none cursor-pointer"
-              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239ca3af' fill='none' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', paddingRight: '22px' }}
-            >
-              {COLOR_BY_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => setColorBy(v as ColorByMode)}
+              className="text-xs"
+              options={COLOR_BY_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
+            />
           </div>
         </div>
 
@@ -833,19 +828,19 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, themeMode }: 
             {formatReplayTime(1)}
           </span>
 
-          {/* Speed */}
-          <select
-            value={replaySpeed}
-            onChange={(e) => setReplaySpeed(Number(e.target.value))}
-            className="flex-shrink-0 text-[11px] bg-transparent text-gray-300 border border-gray-600 rounded-md px-1.5 py-0.5 focus:outline-none cursor-pointer appearance-none text-center w-[42px]"
+          {/* Speed – click to cycle */}
+          <button
+            type="button"
+            onClick={() => {
+              const speeds = [0.5, 1, 2, 4, 8, 16];
+              const idx = speeds.indexOf(replaySpeed);
+              setReplaySpeed(speeds[(idx + 1) % speeds.length]);
+            }}
+            className="flex-shrink-0 text-[9px] text-gray-300 border border-gray-600 rounded px-1.5 py-px cursor-pointer text-center min-w-[32px] hover:border-gray-400 transition-colors themed-select-trigger"
+            title="Click to cycle speed"
           >
-            <option value={0.5}>½×</option>
-            <option value={1}>1×</option>
-            <option value={2}>2×</option>
-            <option value={4}>4×</option>
-            <option value={8}>8×</option>
-            <option value={16}>16×</option>
-          </select>
+            {replaySpeed === 0.5 ? '½×' : `${replaySpeed}×`}
+          </button>
         </div>
       ) : null}
     </div>

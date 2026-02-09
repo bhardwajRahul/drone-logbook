@@ -16,6 +16,7 @@ import { useFlightStore } from '@/stores/flightStore';
 import { formatDuration, formatDateTime, formatDistance } from '@/lib/utils';
 import { DayPicker, type DateRange } from 'react-day-picker';
 import type { FlightDataResponse, Flight, TelemetryData } from '@/types';
+import { Select } from '@/components/ui/Select';
 import 'react-day-picker/dist/style.css';
 
 export function FlightList({ onSelectFlight }: { onSelectFlight?: (flightId: number) => void } = {}) {
@@ -731,34 +732,28 @@ ${points}
         </div>
         <div>
           <label className="block text-xs text-gray-400 mb-1">Drone</label>
-          <select
+          <Select
             value={selectedDrone}
-            onChange={(e) => setSelectedDrone(e.target.value)}
-            className="input w-full text-xs h-8 px-3 py-0 leading-[1.2]"
-          >
-            <option value="">All drones</option>
-            {droneOptions.map((option) => (
-              <option key={option.key} value={option.key}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedDrone}
+            className="text-xs h-8"
+            options={[
+              { value: '', label: 'All drones' },
+              ...droneOptions.map((option) => ({ value: option.key, label: option.label })),
+            ]}
+          />
         </div>
 
         <div>
           <label className="block text-xs text-gray-400 mb-1">Battery serial</label>
-          <select
+          <Select
             value={selectedBattery}
-            onChange={(e) => setSelectedBattery(e.target.value)}
-            className="input w-full text-xs h-8 px-3 py-0 leading-[1.2]"
-          >
-            <option value="">All batteries</option>
-            {batteryOptions.map((serial) => (
-              <option key={serial} value={serial}>
-                {getBatteryDisplayName(serial)}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedBattery}
+            className="text-xs h-8"
+            options={[
+              { value: '', label: 'All batteries' },
+              ...batteryOptions.map((serial) => ({ value: serial, label: getBatteryDisplayName(serial) })),
+            ]}
+          />
         </div>
 
         {/* Filtered count and Clear filters on same line */}
