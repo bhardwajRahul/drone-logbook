@@ -13,12 +13,14 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { getTrackCenter, calculateBounds, formatAltitude, formatSpeed, formatDistance } from '@/lib/utils';
 import { useFlightStore } from '@/stores/flightStore';
 import { Select } from '@/components/ui/Select';
+import type { TelemetryData } from '@/types';
 
 interface FlightMapProps {
   track: [number, number, number][]; // [lng, lat, alt][]
   homeLat?: number | null;
   homeLon?: number | null;
   durationSecs?: number | null;
+  telemetry?: TelemetryData;
   themeMode: 'system' | 'dark' | 'light';
 }
 
@@ -189,7 +191,7 @@ const COLOR_BY_OPTIONS: { value: ColorByMode; label: string }[] = [
   { value: 'distance', label: 'Dist. from Home' },
 ];
 
-export function FlightMap({ track, homeLat, homeLon, durationSecs, themeMode }: FlightMapProps) {
+export function FlightMap({ track, homeLat, homeLon, durationSecs, telemetry, themeMode }: FlightMapProps) {
   const [viewState, setViewState] = useState({
     longitude: 0,
     latitude: 0,
@@ -341,6 +343,61 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, themeMode }: 
       }),
     ];
   }, [showAircraft, replayMarkerPos, isPlaying, replayProgress]);
+
+  // Whether the replay is actively showing (playing or scrubbed away from 0)
+  const replayActive = showAircraft && (isPlaying || replayProgress > 0);
+
+  // Interpolate telemetry at current replay position
+  const replayTelemetry = useMemo(() => {
+    if (!telemetry || !telemetry.time || telemetry.time.length === 0 || track.length === 0) return null;
+    const n = telemetry.time.length;
+    const idx = replayProgress * (n - 1);
+    const lo = Math.floor(idx);
+    const hi = Math.min(lo + 1, n - 1);
+    const frac = idx - lo;
+
+    const lerp = (arr: (number | null)[] | undefined): number | null => {
+      if (!arr) return null;
+      const a = arr[lo];
+      const b = arr[hi];
+      if (a === null || a === undefined) return b;
+      if (b === null || b === undefined) return a;
+      return a + (b - a) * frac;
+    };
+
+    const height = lerp(telemetry.height);
+    const speed = lerp(telemetry.speed);
+    const battery = lerp(telemetry.battery);
+    const satellites = telemetry.satellites?.[lo] ?? null;
+    const altitude = lerp(telemetry.altitude) ?? lerp(telemetry.height);
+    const vpsHeight = lerp(telemetry.vpsHeight);
+    const pitch = lerp(telemetry.pitch);
+    const roll = lerp(telemetry.roll);
+    const yaw = lerp(telemetry.yaw);
+    const rcSignal = telemetry.rcSignal?.[lo] ?? null;
+    const batteryVoltage = lerp(telemetry.batteryVoltage);
+    const batteryTemp = lerp(telemetry.batteryTemp);
+
+    // Compute distance from home at this point
+    const lat = lerp(telemetry.latitude);
+    const lng = lerp(telemetry.longitude);
+    const hLat = homeLat ?? track[0]?.[1] ?? 0;
+    const hLon = homeLon ?? track[0]?.[0] ?? 0;
+    const distHome = lat !== null && lng !== null
+      ? haversineM(hLat, hLon, lat, lng)
+      : null;
+
+    // Flight time
+    const timeSecs = durationSecs != null && durationSecs > 0
+      ? Math.round(replayProgress * durationSecs)
+      : null;
+
+    return {
+      height, speed, battery, satellites, altitude, vpsHeight,
+      pitch, roll, yaw, rcSignal, batteryVoltage, batteryTemp,
+      distHome, timeSecs, lat, lng,
+    };
+  }, [telemetry, track, replayProgress, homeLat, homeLon, durationSecs]);
 
   const handlePlayPause = useCallback(() => {
     if (isPlaying) {
@@ -618,7 +675,7 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, themeMode }: 
     <div
       className="relative h-full w-full min-h-0"
       onMouseMove={(e) => {
-        if (!showTooltip || !deckRef.current) {
+        if (!showTooltip || !deckRef.current || replayActive) {
           if (hoverInfo) setHoverInfo(null);
           return;
         }
@@ -666,7 +723,7 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, themeMode }: 
             onChange={setIsSatellite}
           />
           <ToggleRow
-            label="Tooltip"
+            label="Telemetry"
             checked={showTooltip}
             onChange={setShowTooltip}
           />
@@ -741,8 +798,8 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, themeMode }: 
         }}
       />
 
-      {/* Hover tooltip */}
-      {hoverInfo && showTooltip && (
+      {/* Hover tooltip — hidden during replay */}
+      {hoverInfo && showTooltip && !replayActive && (
         <div
           className="pointer-events-none absolute z-50"
           style={{ left: hoverInfo.x + 12, top: hoverInfo.y - 60 }}
@@ -776,6 +833,89 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, themeMode }: 
               <span className="text-gray-500">Lng</span>
               <span className="text-gray-400">{hoverInfo.lng.toFixed(6)}</span>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Replay telemetry overlay — fixed top-right during playback */}
+      {replayActive && showTooltip && replayTelemetry && (
+        <div className="absolute top-2 right-12 z-20 pointer-events-none">
+          <div className="map-overlay bg-dji-dark/80 backdrop-blur border border-gray-700 rounded-xl px-3.5 py-3 shadow-lg text-[11px] text-gray-200 min-w-[180px]">
+            {/* Flight time */}
+            {replayTelemetry.timeSecs !== null && (
+              <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-700/50">
+                <svg className="w-3.5 h-3.5 text-dji-accent flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+                <span className="font-semibold text-white text-xs tabular-nums">
+                  {(() => { const m = Math.floor(replayTelemetry.timeSecs! / 60); const s = replayTelemetry.timeSecs! % 60; return `${m}:${String(s).padStart(2, '0')}`; })()}
+                </span>
+                <span className="text-gray-500 text-[10px]">/ {formatReplayTime(1)}</span>
+              </div>
+            )}
+
+            {/* Primary stats */}
+            <div className="space-y-1">
+              <ReplayStatRow label="Height" value={formatAltitude(replayTelemetry.height, unitSystem)} />
+              <ReplayStatRow label="Speed" value={formatSpeed(replayTelemetry.speed, unitSystem)} />
+              <ReplayStatRow label="Dist. Home" value={formatDistance(replayTelemetry.distHome, unitSystem)} />
+            </div>
+
+            {/* Battery */}
+            {replayTelemetry.battery !== null && (
+              <div className="mt-2 pt-2 border-t border-gray-700/50 space-y-1">
+                <div className="flex justify-between gap-3">
+                  <span className="text-gray-400">Battery</span>
+                  <span className={`font-medium tabular-nums ${
+                    replayTelemetry.battery! < 20 ? 'text-red-400' :
+                    replayTelemetry.battery! < 40 ? 'text-amber-400' : 'text-emerald-400'
+                  }`}>{Math.round(replayTelemetry.battery!)}%</span>
+                </div>
+                {replayTelemetry.batteryVoltage !== null && (
+                  <ReplayStatRow label="Voltage" value={`${replayTelemetry.batteryVoltage!.toFixed(1)} V`} />
+                )}
+                {replayTelemetry.batteryTemp !== null && (
+                  <ReplayStatRow label="Batt. Temp" value={unitSystem === 'imperial' ? `${(replayTelemetry.batteryTemp! * 9 / 5 + 32).toFixed(0)}°F` : `${replayTelemetry.batteryTemp!.toFixed(0)}°C`} />
+                )}
+              </div>
+            )}
+
+            {/* Satellites */}
+            {replayTelemetry.satellites !== null && (
+              <div className="mt-2 pt-2 border-t border-gray-700/50 space-y-1">
+                <ReplayStatRow label="Satellites" value={String(Math.round(replayTelemetry.satellites!))} />
+              </div>
+            )}
+
+            {/* Attitude */}
+            {(replayTelemetry.pitch !== null || replayTelemetry.roll !== null || replayTelemetry.yaw !== null) && (
+              <div className="mt-2 pt-2 border-t border-gray-700/50 space-y-1">
+                {replayTelemetry.pitch !== null && (
+                  <ReplayStatRow label="Pitch" value={`${replayTelemetry.pitch!.toFixed(1)}°`} />
+                )}
+                {replayTelemetry.roll !== null && (
+                  <ReplayStatRow label="Roll" value={`${replayTelemetry.roll!.toFixed(1)}°`} />
+                )}
+                {replayTelemetry.yaw !== null && (
+                  <ReplayStatRow label="Yaw" value={`${replayTelemetry.yaw!.toFixed(1)}°`} />
+                )}
+              </div>
+            )}
+
+            {/* Coordinates */}
+            {replayTelemetry.lat !== null && replayTelemetry.lng !== null && (
+              <div className="mt-2 pt-2 border-t border-gray-700/50 space-y-1">
+                <div className="flex justify-between gap-3">
+                  <span className="text-gray-500">Lat</span>
+                  <span className="text-gray-400 tabular-nums">{replayTelemetry.lat!.toFixed(6)}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-gray-500">Lng</span>
+                  <span className="text-gray-400 tabular-nums">{replayTelemetry.lng!.toFixed(6)}</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -843,6 +983,15 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, themeMode }: 
           </button>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function ReplayStatRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-3">
+      <span className="text-gray-400">{label}</span>
+      <span className="font-medium text-white tabular-nums">{value}</span>
     </div>
   );
 }
