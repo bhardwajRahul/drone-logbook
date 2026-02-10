@@ -1,12 +1,15 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
-import { readFileSync } from 'fs'
+import { readFileSync, existsSync } from 'fs'
 
 const isWebBuild = process.env.VITE_BACKEND === 'web'
 
-// Read version from package.json for the __APP_VERSION__ global
-const pkg = JSON.parse(readFileSync(resolve(__dirname, 'src-tauri/tauri.conf.json'), 'utf-8'))
+// Read version: prefer tauri.conf.json, fall back to package.json (e.g. Docker builds)
+const tauriConfPath = resolve(__dirname, 'src-tauri/tauri.conf.json')
+const pkg = existsSync(tauriConfPath)
+  ? JSON.parse(readFileSync(tauriConfPath, 'utf-8'))
+  : JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf-8'))
 
 // https://vitejs.dev/config/
 export default defineConfig({
