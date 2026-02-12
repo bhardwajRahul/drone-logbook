@@ -116,7 +116,10 @@
       "Smart Tags: Two tag types — auto (teal capsules) and manual (violet capsules). Add/remove manual tags via FlightStats. Settings toggle to enable/disable auto-tagging on import. Regenerate smart tags for all flights button in Settings.",
       "Smart Tags: flight_tags table in DuckDB with tag_type column (auto/manual), migration for older DBs, included in backup/restore.",
       "Flight list: Tag filter (multi-select dropdown with checkboxes). Filter inversion button (circular arrows icon) to negate all active filters.",
-      "UI: Select dropdowns (drone, battery, settings) are searchable — type to filter options, Enter selects first match, text discarded on blur.",
+      "Flight list: Keyboard navigation — Up/Down arrows to browse flights (preview highlight), Enter to select and load. Selection auto-clears when filtered out.",
+      "UI: Select dropdowns (drone, battery, settings) are searchable — type to filter options, arrow keys to navigate, Enter selects, Escape closes.",
+      "UI: All dropdowns (sort, export, tag filter) support arrow key navigation with visual highlight.",
+      "UI: Escape key closes modals (Settings, Weather).",
       "Backup & Restore: Export full database (flights, telemetry, keychains, flight_tags) to a portable gzip-compressed tar archive of Parquet files. Import restores data with upsert semantics. Works in both Tauri (native save/open dialogs) and web (browser download/upload).",
       "Data safety: DB backup, corruption handling, telemetry rebuild when column order mismatches.",
       "Docker/Web deployment: Axum REST API mirroring all Tauri commands, Nginx reverse proxy, multi-stage Docker build.",
@@ -297,6 +300,14 @@
       "reset_zoom_button": "FlightClusterMap.tsx: 'Reset zoom' button in bottom-right corner. Uses allFlights prop (all flights, not just filtered) to fit bounds to entire dataset.",
       "import_auto_collapse": "Dashboard.tsx: Import section now auto-collapses when flights exist in database, auto-expands when empty. Uses new isFlightsInitialized store state to wait for DB load before determining collapsed state. No longer persisted to localStorage.",
       "store_changes": "flightStore.ts: Added isFlightsInitialized (true after first loadFlights), mapAreaFilterEnabled, mapVisibleBounds, setMapAreaFilterEnabled, setMapVisibleBounds."
+    },
+    "keyboard_navigation_and_ui_polish": {
+      "description": "Keyboard shortcuts for accessibility, arrow key dropdown navigation, filter UI improvements, and auto-clear selection when filtered out.",
+      "keyboard_shortcuts": "FlightList.tsx: Up/Down arrow keys navigate flight list (visual preview only). Enter key confirms and loads the selected flight. Scroll-into-view on navigation. SettingsModal.tsx and WeatherModal.tsx: Escape key closes modal (SettingsModal respects isBusy state).",
+      "dropdown_arrow_keys": "Select.tsx: Added highlightedIndex state, ArrowUp/Down navigate options, Enter selects, Escape closes, mouse hover updates highlight. Removed duplicate onKeyDown handler that caused double-skip bug. FlightList.tsx: Sort dropdown, export dropdown, and tag dropdown all support arrow key navigation with highlighted state and Enter to confirm.",
+      "filter_layout": "FlightList.tsx: Inline filter layout with consistent 52px label width column. Duration slider row restructured with flex layout. Duration value display centered. Tag dropdown overflow fixed with left-0 right-0 positioning and overflow-hidden.",
+      "tag_sorting": "FlightList.tsx: Tags in dropdown sorted with selected tags first, then alphabetically.",
+      "auto_clear_selection": "FlightList.tsx: Selection automatically cleared when currently selected flight is not in filtered results or when filters return no results. Prevents stale cached data from showing on map/charts."
     }
   },
   "behavior": {
@@ -501,7 +512,8 @@
   },
   "ui": {
     "themes": "CSS variables in src/index.css; body classes theme-light/theme-dark. Light mode uses !important overrides.",
-    "filters": "Flight list uses date range popover (react-day-picker), drone and battery selects (searchable via type-to-filter), dual-thumb duration slider, and multi-select tag filter. Filter inversion button (circular arrows) individually negates each active filter (AND logic: NOT A AND NOT B). Collapsible filter/import panels persisted to localStorage. Overview shares sidebar filters via store.",
+    "filters": "Flight list uses date range popover (react-day-picker), drone and battery selects (searchable via type-to-filter), dual-thumb duration slider, and multi-select tag filter. Filter inversion button (circular arrows) individually negates each active filter (AND logic: NOT A AND NOT B). Collapsible filter/import panels persisted to localStorage. Overview shares sidebar filters via store. Selection auto-clears when selected flight is no longer in filtered results.",
+    "keyboard_navigation": "FlightList: Up/Down arrows browse flights (preview highlight), Enter selects and loads. All modals close on Escape. Select/sort/export/tag dropdowns support arrow key navigation with highlighted index.",
     "flight_list": "Simple compact list with always-visible rename (pencil icon, sky-400) and delete (trash icon, red-400) icons. Subtitle shows date . duration . distance.",
     "charts": "ECharts with synced zoom; global drag-to-zoom toggle + reset zoom buttons; tooltip header uses pill capsules. Theme-aware base config. Hidden per-chart toolbox enables selection highlight for drag-to-zoom.",
     "map": "MapLibre terrain with deck.gl overlay. Spline-smoothed color-by gradient path, shadow layer, start/end/home markers, hover tooltip. Replay telemetry overlay with live-interpolated data during playback. RC stick input overlay with progressive-fill bars and theme-aware styling (cyan on dark, dark slate on light).",

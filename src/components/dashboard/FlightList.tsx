@@ -32,6 +32,7 @@ export function FlightList({ onSelectFlight }: { onSelectFlight?: (flightId: num
     mapAreaFilterEnabled,
     mapVisibleBounds,
     setMapAreaFilterEnabled,
+    clearSelection,
   } =
     useFlightStore();
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -293,6 +294,19 @@ export function FlightList({ onSelectFlight }: { onSelectFlight?: (flightId: num
   useEffect(() => {
     setSidebarFilteredFlightIds(new Set(filteredFlights.map((f) => f.id)));
   }, [filteredFlights, setSidebarFilteredFlightIds]);
+
+  // Clear selection if the currently selected flight is not in the filtered results
+  useEffect(() => {
+    if (selectedFlightId !== null && filteredFlights.length > 0) {
+      const isSelectedInFiltered = filteredFlights.some((f) => f.id === selectedFlightId);
+      if (!isSelectedInFiltered) {
+        clearSelection();
+      }
+    } else if (selectedFlightId !== null && filteredFlights.length === 0) {
+      // No flights match the filter - clear selection
+      clearSelection();
+    }
+  }, [filteredFlights, selectedFlightId, clearSelection]);
 
   const normalizedSearch = useMemo(
     () => searchQuery.trim().toLowerCase(),
@@ -944,7 +958,7 @@ ${points}
                 );
               })()}
             </div>
-            <span className="text-xs font-medium text-gray-200 whitespace-nowrap min-w-[60px] text-right flex-shrink-0">
+            <span className="text-xs font-medium text-gray-200 whitespace-nowrap min-w-[60px] flex items-center justify-center flex-shrink-0">
               {(() => {
                 const lo = durationFilterMin ?? durationRange.minMins;
                 const hi = durationFilterMax ?? durationRange.maxMins;
