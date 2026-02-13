@@ -45,6 +45,7 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
   const renameBattery = useFlightStore((state) => state.renameBattery);
   const getDroneDisplayName = useFlightStore((state) => state.getDroneDisplayName);
   const renameDrone = useFlightStore((state) => state.renameDrone);
+  const droneNameMap = useFlightStore((state) => state.droneNameMap);
   const sidebarFilteredFlightIds = useFlightStore((state) => state.sidebarFilteredFlightIds);
   const resolvedTheme = useMemo(() => resolveThemeMode(themeMode), [themeMode]);
 
@@ -100,16 +101,18 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
       }
     });
 
-    // Check if any model names are duplicated
+    // Check if any display names are duplicated (using renamed names)
     const modelCounts = new Map<string, number>();
     droneMap.forEach((d) => {
-      const displayName = d.name || d.model;
+      const fallback = d.name || d.model;
+      const displayName = d.serial ? getDroneDisplayName(d.serial, fallback) : fallback;
       modelCounts.set(displayName, (modelCounts.get(displayName) || 0) + 1);
     });
 
     const dronesUsed = Array.from(droneMap.entries())
       .map(([_, data]) => {
-        const displayName = data.name || data.model;
+        const fallback = data.name || data.model;
+        const displayName = data.serial ? getDroneDisplayName(data.serial, fallback) : fallback;
         const needsSerial = (modelCounts.get(displayName) || 0) > 1 && data.serial;
         return {
           droneModel: data.model,
@@ -174,7 +177,7 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
       flightsByDate,
       topFlights,
     };
-  }, [filteredFlights, stats.maxDistanceFromHomeM, stats.topDistanceFlights]);
+  }, [filteredFlights, stats.maxDistanceFromHomeM, stats.topDistanceFlights, getDroneDisplayName, droneNameMap]);
 
   const filteredHealthPoints = useMemo(() => {
     if (!stats.batteryHealthPoints.length) return [] as BatteryHealthPoint[];
