@@ -27,6 +27,7 @@ export function Dashboard() {
     supporterBadgeActive,
     checkForUpdates,
     isImporting,
+    isBatchProcessing,
   } = useFlightStore();
   const [showSettings, setShowSettings] = useState(false);
   const [activeView, setActiveView] = useState<'flights' | 'overview'>('overview');
@@ -228,56 +229,63 @@ export function Dashboard() {
               onClick={() => setIsImporterCollapsed((v) => !v)}
               className="flex items-center gap-2 text-xs text-gray-400 hover:text-white transition-colors"
             >
-              <span className={`font-medium ${isImporting ? 'text-emerald-400' : ''}`}>
-                {isImporting ? 'Importing...' : isImporterCollapsed !== false ? 'Import — click to expand' : 'Import'}
+              <span className={`font-medium ${(isImporting || isBatchProcessing) ? 'text-emerald-400' : ''}`}>
+                {(isImporting || isBatchProcessing)
+                  ? (isImporterCollapsed !== false ? 'Importing... — click to expand' : 'Importing...')
+                  : (isImporterCollapsed !== false ? 'Import — click to expand' : 'Import')}
               </span>
+            </button>
+            <div className="flex items-center gap-1">
+              {/* Sync Folder Config Button (desktop only) */}
+              {!isWebMode() && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const { open } = await import('@tauri-apps/plugin-dialog');
+                      const selected = await open({
+                        directory: true,
+                        multiple: false,
+                        title: 'Select Sync Folder',
+                      });
+                      if (selected && typeof selected === 'string') {
+                        setSyncFolderPath(selected);
+                        // Force re-render by triggering a state update
+                        window.dispatchEvent(new CustomEvent('syncFolderChanged'));
+                      }
+                    } catch (e) {
+                      console.error('Failed to select sync folder:', e);
+                    }
+                  }}
+                  className={`p-1.5 rounded transition-colors ${
+                    getSyncFolderPath()
+                      ? 'text-emerald-500 hover:text-emerald-400 dark:text-emerald-400 dark:hover:text-emerald-300 hover:bg-emerald-500/10'
+                      : 'text-red-400 hover:text-red-300 dark:text-red-500 dark:hover:text-red-400 hover:bg-red-500/10'
+                  }`}
+                  title={getSyncFolderPath() ? `Sync folder: ${getSyncFolderPath()}` : 'Configure sync folder'}
+                >
+                  {getSyncFolderPath() ? (
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M10 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V8a2 2 0 00-2-2h-8l-2-2z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                  )}
+                </button>
+              )}
+              {/* Collapse/Expand Button */}
               <span
-                className={`w-5 h-5 rounded-full border border-gray-600 flex items-center justify-center transition-transform duration-200 ${
+                onClick={() => setIsImporterCollapsed((v) => !v)}
+                className={`w-5 h-5 rounded-full border border-gray-600 flex items-center justify-center transition-transform duration-200 cursor-pointer hover:border-gray-500 ${
                   isImporterCollapsed !== false ? 'rotate-180' : ''
                 }`}
+                title={isImporterCollapsed !== false ? 'Expand' : 'Collapse'}
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
               </span>
-            </button>
-            {/* Sync Folder Config Button (desktop only) */}
-            {!isWebMode() && (
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    const { open } = await import('@tauri-apps/plugin-dialog');
-                    const selected = await open({
-                      directory: true,
-                      multiple: false,
-                      title: 'Select Sync Folder',
-                    });
-                    if (selected && typeof selected === 'string') {
-                      setSyncFolderPath(selected);
-                      // Force re-render by triggering a state update
-                      window.dispatchEvent(new CustomEvent('syncFolderChanged'));
-                    }
-                  } catch (e) {
-                    console.error('Failed to select sync folder:', e);
-                  }
-                }}
-                className={`p-1.5 rounded transition-colors ${
-                  getSyncFolderPath()
-                    ? 'text-emerald-500 hover:text-emerald-400 dark:text-emerald-400 dark:hover:text-emerald-300 hover:bg-emerald-500/10'
-                    : 'text-red-400 hover:text-red-300 dark:text-red-500 dark:hover:text-red-400 hover:bg-red-500/10'
-                }`}
-                title={getSyncFolderPath() ? `Sync folder: ${getSyncFolderPath()}` : 'Configure sync folder'}
-              >
-                {getSyncFolderPath() ? (
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M10 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V8a2 2 0 00-2-2h-8l-2-2z" />
-                  </svg>
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                  </svg>
-                )}
-              </button>
-            )}
+            </div>
           </div>
           <div
             className={`transition-all duration-200 ease-in-out ${

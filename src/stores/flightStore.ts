@@ -16,6 +16,8 @@ interface FlightState {
   overviewStats: OverviewStats | null;
   isLoading: boolean;
   isImporting: boolean;
+  isBatchProcessing: boolean;  // true during any batch import (manual, sync, background)
+  setIsBatchProcessing: (value: boolean) => void;
   isRegenerating: boolean;
   regenerationProgress: { processed: number; total: number } | null;
   error: string | null;
@@ -94,6 +96,8 @@ export const useFlightStore = create<FlightState>((set, get) => ({
   overviewStats: null,
   isLoading: false,
   isImporting: false,
+  isBatchProcessing: false,
+  setIsBatchProcessing: (value: boolean) => set({ isBatchProcessing: value }),
   isRegenerating: false,
   regenerationProgress: null,
   error: null,

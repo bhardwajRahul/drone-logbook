@@ -90,8 +90,7 @@ export function isBlacklisted(hash: string | null | undefined): boolean {
 }
 
 export function FlightImporter() {
-  const { importLog, isImporting, apiKeyType, loadApiKeyType } = useFlightStore();
-  const [isBatchProcessing, setIsBatchProcessing] = useState(false);
+  const { importLog, isImporting, apiKeyType, loadApiKeyType, isBatchProcessing, setIsBatchProcessing } = useFlightStore();
   const [batchMessage, setBatchMessage] = useState<string | null>(null);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const [currentFileName, setCurrentFileName] = useState<string | null>(null);
