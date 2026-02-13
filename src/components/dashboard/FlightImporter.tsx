@@ -16,9 +16,23 @@ import { useDropzone } from 'react-dropzone';
 import { isWebMode, pickFiles } from '@/lib/api';
 import { useFlightStore } from '@/stores/flightStore';
 
-// Storage keys for sync folder and blacklist
+// Storage keys for sync folder, blacklist, and autoscan
 const SYNC_FOLDER_KEY = 'syncFolderPath';
 const BLACKLIST_KEY = 'importBlacklist';
+const AUTOSCAN_KEY = 'autoscanEnabled';
+
+// Get autoscan enabled setting from localStorage
+export function getAutoscanEnabled(): boolean {
+  if (typeof localStorage === 'undefined') return true; // Default to enabled
+  const stored = localStorage.getItem(AUTOSCAN_KEY);
+  return stored !== 'false'; // Default to true if not set
+}
+
+// Set autoscan enabled setting
+export function setAutoscanEnabled(enabled: boolean): void {
+  if (typeof localStorage === 'undefined') return;
+  localStorage.setItem(AUTOSCAN_KEY, String(enabled));
+}
 
 // Get sync folder path from localStorage
 export function getSyncFolderPath(): string | null {
@@ -85,6 +99,11 @@ export function FlightImporter() {
   const [batchTotal, setBatchTotal] = useState(0);
   const [syncFolderPath, setSyncFolderPathState] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isBackgroundSyncing, setIsBackgroundSyncing] = useState(false);
+  const [backgroundSyncResult, setBackgroundSyncResult] = useState<string | null>(null);
+  const [autoscanEnabled, setAutoscanEnabledState] = useState(() => getAutoscanEnabled());
+  const backgroundSyncTriggeredRef = useRef(false);
+  const backgroundSyncAbortRef = useRef(false);
 
   // Load sync folder path on mount and listen for changes from Dashboard
   useEffect(() => {
@@ -367,6 +386,15 @@ export function FlightImporter() {
   const processBatchRef = useRef(processBatch);
   processBatchRef.current = processBatch;
 
+  // Cancel background sync when user initiates manual import/sync
+  const cancelBackgroundSync = () => {
+    if (isBackgroundSyncing) {
+      backgroundSyncAbortRef.current = true;
+      setIsBackgroundSyncing(false);
+      setBackgroundSyncResult(null);
+    }
+  };
+
   useEffect(() => {
     if (isWebMode()) return;
 
@@ -386,6 +414,8 @@ export function FlightImporter() {
               /\.(txt|dat|log|csv)$/i.test(p)
             );
             if (supported.length > 0) {
+              // Cancel background sync - user action takes priority
+              cancelBackgroundSync();
               processBatchRef.current(supported);
             }
           } else if (event.payload.type === 'leave') {
@@ -402,6 +432,112 @@ export function FlightImporter() {
     };
   }, []);
 
+  // Background automatic sync on startup (lazy loaded, non-blocking)
+  useEffect(() => {
+    // Only run once, only in desktop mode, only if sync folder is configured, only if autoscan enabled
+    if (backgroundSyncTriggeredRef.current || isWebMode() || !autoscanEnabled) return;
+    
+    const folderPath = getSyncFolderPath();
+    if (!folderPath) return;
+    
+    // Mark as triggered to prevent re-running
+    backgroundSyncTriggeredRef.current = true;
+    // Reset abort flag for this run
+    backgroundSyncAbortRef.current = false;
+    
+    // Lazy load: wait 3 seconds after mount to not block initial render
+    const timeoutId = setTimeout(async () => {
+      // Don't run if user is already doing something
+      if (isImporting || isBatchProcessing || isSyncing) return;
+      
+      setIsBackgroundSyncing(true);
+      setBackgroundSyncResult(null);
+      
+      try {
+        // Check abort before each async operation
+        if (backgroundSyncAbortRef.current) {
+          setIsBackgroundSyncing(false);
+          return;
+        }
+        
+        const { readDir } = await import('@tauri-apps/plugin-fs');
+        const entries = await readDir(folderPath);
+        
+        // Check abort after directory read
+        if (backgroundSyncAbortRef.current) {
+          setIsBackgroundSyncing(false);
+          return;
+        }
+        
+        // Filter for .txt files
+        const txtFiles = entries
+          .filter((entry) => entry.isFile && entry.name?.toLowerCase().endsWith('.txt'))
+          .map((entry) => `${folderPath}/${entry.name}`);
+        
+        if (txtFiles.length === 0) {
+          setIsBackgroundSyncing(false);
+          return;
+        }
+        
+        // Get existing file hashes to check for new files
+        const { computeFileHash, getFlights } = await import('@/lib/api');
+        const existingFlights = await getFlights();
+        const existingHashes = new Set(existingFlights.map(f => f.fileHash).filter(Boolean));
+        const blacklist = getBlacklist();
+        
+        // Find truly new files (not already imported, not blacklisted)
+        const newFiles: string[] = [];
+        for (const filePath of txtFiles) {
+          // Check abort during hash computation loop
+          if (backgroundSyncAbortRef.current) {
+            setIsBackgroundSyncing(false);
+            return;
+          }
+          try {
+            const hash = await computeFileHash(filePath);
+            if (!existingHashes.has(hash) && !blacklist.has(hash)) {
+              newFiles.push(filePath);
+            }
+          } catch {
+            // If hash fails, skip silently
+          }
+        }
+        
+        // Final abort check before importing
+        if (backgroundSyncAbortRef.current) {
+          setIsBackgroundSyncing(false);
+          return;
+        }
+        
+        setIsBackgroundSyncing(false);
+        
+        if (newFiles.length > 0) {
+          // Show hint about new files found, then auto-import them
+          setBackgroundSyncResult(`Found ${newFiles.length} new file${newFiles.length === 1 ? '' : 's'}. Importing...`);
+          
+          // Small delay to show the message, then start import
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Check abort before starting import
+          if (backgroundSyncAbortRef.current) {
+            setBackgroundSyncResult(null);
+            return;
+          }
+          
+          setBackgroundSyncResult(null);
+          
+          // Process the new files (non-blocking, will show normal import progress)
+          await processBatchRef.current(newFiles, false);
+        }
+      } catch (e) {
+        console.error('Background sync check failed:', e);
+        setIsBackgroundSyncing(false);
+      }
+    }, 3000); // 3 second delay for lazy loading
+    
+    return () => clearTimeout(timeoutId);
+  }, [autoscanEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const isDragActive = webDragActive || tauriDragActive;
 
   // Handle sync button click
@@ -410,6 +546,9 @@ export function FlightImporter() {
       alert('Sync feature is only available in the desktop app.');
       return;
     }
+
+    // Cancel background sync - user action takes priority
+    cancelBackgroundSync();
 
     const folderPath = getSyncFolderPath();
     if (!folderPath) {
@@ -537,6 +676,36 @@ export function FlightImporter() {
             <p className="mt-2 text-[10px] text-gray-500 truncate max-w-full" title={syncFolderPath}>
               Sync: {getSyncFolderDisplayName()}
             </p>
+          )}
+          
+          {/* Autoscan toggle */}
+          {!isWebMode() && syncFolderPath && (
+            <label className="mt-2 flex items-center justify-center gap-1.5 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={autoscanEnabled}
+                onChange={(e) => {
+                  const enabled = e.target.checked;
+                  setAutoscanEnabledState(enabled);
+                  setAutoscanEnabled(enabled);
+                }}
+                className="w-3 h-3 rounded border-gray-500 bg-dji-dark text-dji-primary focus:ring-1 focus:ring-dji-primary focus:ring-offset-0 cursor-pointer"
+              />
+              <span className="text-[10px] text-gray-500 group-hover:text-gray-400 transition-colors">Autoscan on startup</span>
+            </label>
+          )}
+          
+          {/* Background sync indicator (passive, non-blocking) */}
+          {isBackgroundSyncing && (
+            <div className="mt-2 flex items-center justify-center gap-2 text-[10px] text-gray-500">
+              <div className="w-3 h-3 border border-gray-500 border-t-transparent rounded-full animate-spin" />
+              <span>Auto-sync checking for new files...</span>
+            </div>
+          )}
+          
+          {/* Background sync result hint */}
+          {backgroundSyncResult && !isBackgroundSyncing && (
+            <p className="mt-2 text-[10px] text-emerald-400">{backgroundSyncResult}</p>
           )}
           
           {batchMessage && (
