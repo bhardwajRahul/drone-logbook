@@ -78,6 +78,11 @@ interface FlightState {
   droneNameMap: Record<string, string>;
   renameDrone: (serial: string, displayName: string) => void;
   getDroneDisplayName: (serial: string, fallbackName: string) => string;
+
+  // Hide serial numbers (privacy mode)
+  hideSerialNumbers: boolean;
+  setHideSerialNumbers: (hide: boolean) => void;
+  getDisplaySerial: (serial: string) => string;
 }
 
 export const useFlightStore = create<FlightState>((set, get) => ({
@@ -135,6 +140,10 @@ export const useFlightStore = create<FlightState>((set, get) => ({
       return {};
     }
   })(),
+  hideSerialNumbers:
+    typeof localStorage !== 'undefined'
+      ? localStorage.getItem('hideSerialNumbers') === 'true'
+      : false,
 
   // Load all flights from database
   loadFlights: async () => {
@@ -528,7 +537,9 @@ export const useFlightStore = create<FlightState>((set, get) => ({
   },
 
   getBatteryDisplayName: (serial: string) => {
-    return get().batteryNameMap[serial] || serial;
+    const customName = get().batteryNameMap[serial];
+    if (customName) return customName;
+    return get().hideSerialNumbers ? '*****' : serial;
   },
 
   renameDrone: (serial: string, displayName: string) => {
@@ -547,6 +558,17 @@ export const useFlightStore = create<FlightState>((set, get) => ({
 
   getDroneDisplayName: (serial: string, fallbackName: string) => {
     return get().droneNameMap[serial] || fallbackName;
+  },
+
+  setHideSerialNumbers: (hide: boolean) => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('hideSerialNumbers', String(hide));
+    }
+    set({ hideSerialNumbers: hide });
+  },
+
+  getDisplaySerial: (serial: string) => {
+    return get().hideSerialNumbers ? '*****' : serial;
   },
 
   // Sidebar filtered flight IDs

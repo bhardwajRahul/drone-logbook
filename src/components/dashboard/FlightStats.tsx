@@ -23,7 +23,7 @@ interface FlightStatsProps {
 
 export function FlightStats({ data }: FlightStatsProps) {
   const { flight, telemetry } = data;
-  const { unitSystem, getBatteryDisplayName, addTag, removeTag, allTags } = useFlightStore();
+  const { unitSystem, getBatteryDisplayName, addTag, removeTag, allTags, getDisplaySerial } = useFlightStore();
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isWeatherOpen, setIsWeatherOpen] = useState(false);
@@ -323,7 +323,7 @@ ${points}
             )}
             {flight.droneSerial && (
               <span className="px-2 py-0.5 rounded-full text-xs border border-gray-600/60 text-gray-400 bg-dji-surface/60">
-                SN: {flight.droneSerial}
+                SN: {getDisplaySerial(flight.droneSerial)}
               </span>
             )}
             {flight.batterySerial && (

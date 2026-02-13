@@ -35,6 +35,7 @@ export function FlightList({ onSelectFlight }: { onSelectFlight?: (flightId: num
     mapVisibleBounds,
     setMapAreaFilterEnabled,
     clearSelection,
+    getDisplaySerial,
   } =
     useFlightStore();
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -203,7 +204,7 @@ export function FlightList({ onSelectFlight }: { onSelectFlight?: (flightId: num
           const displayName = flight.droneSerial
             ? getDroneDisplayName(flight.droneSerial, fallback)
             : fallback;
-          return `${displayName}${flight.droneSerial ? ` : ${flight.droneSerial}` : ''}`;
+          return `${displayName}${flight.droneSerial ? ` : ${getDisplaySerial(flight.droneSerial)}` : ''}`;
         })(),
       }))
       .filter((entry) => entry.label.trim().length > 0);
@@ -216,7 +217,7 @@ export function FlightList({ onSelectFlight }: { onSelectFlight?: (flightId: num
     });
 
     return Array.from(unique.entries()).map(([key, label]) => ({ key, label }));
-  }, [flights, getDroneDisplayName, droneNameMap]);
+  }, [flights, getDroneDisplayName, droneNameMap, getDisplaySerial]);
 
   const batteryOptions = useMemo(() => {
     const unique = new Set<string>();

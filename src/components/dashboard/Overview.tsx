@@ -47,6 +47,7 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
   const renameDrone = useFlightStore((state) => state.renameDrone);
   const droneNameMap = useFlightStore((state) => state.droneNameMap);
   const sidebarFilteredFlightIds = useFlightStore((state) => state.sidebarFilteredFlightIds);
+  const getDisplaySerial = useFlightStore((state) => state.getDisplaySerial);
   const resolvedTheme = useMemo(() => resolveThemeMode(themeMode), [themeMode]);
 
   // Use sidebar-filtered flights (fall back to all flights if no filter set yet)
@@ -120,7 +121,7 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
           aircraftName: data.name,
           flightCount: data.count,
           totalDurationSecs: data.totalDurationSecs,
-          displayLabel: needsSerial ? `${displayName} (${data.serial})` : displayName,
+          displayLabel: needsSerial ? `${displayName} (${getDisplaySerial(data.serial!)})` : displayName,
         };
       })
       .sort((a, b) => b.totalDurationSecs - a.totalDurationSecs);
@@ -244,6 +245,7 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
           isLight={resolvedTheme === 'light'}
           getDroneDisplayName={getDroneDisplayName}
           renameDrone={renameDrone}
+          getDisplaySerial={getDisplaySerial}
         />
       </div>
 
@@ -316,6 +318,7 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
             isLight={resolvedTheme === 'light'}
             getBatteryDisplayName={getBatteryDisplayName}
             renameBattery={renameBattery}
+            getDisplaySerial={getDisplaySerial}
           />
         </div>
 
@@ -799,11 +802,13 @@ function DroneFlightTimeList({
   isLight,
   getDroneDisplayName,
   renameDrone,
+  getDisplaySerial,
 }: {
   drones: { droneModel: string; droneSerial: string | null; aircraftName: string | null; flightCount: number; totalDurationSecs: number; displayLabel: string }[];
   isLight: boolean;
   getDroneDisplayName: (serial: string, fallbackName: string) => string;
   renameDrone: (serial: string, displayName: string) => void;
+  getDisplaySerial: (serial: string) => string;
 }) {
   const [editingSerial, setEditingSerial] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
@@ -917,12 +922,12 @@ function DroneFlightTimeList({
                   <span
                     className={`text-gray-300 font-medium truncate flex items-center justify-end gap-1 ${drone.droneSerial ? 'group cursor-pointer' : ''}`}
                     onDoubleClick={() => drone.droneSerial && handleStartRename(drone.droneSerial, fallbackName)}
-                    title={drone.droneSerial ? `${displayName}${hasDuplicate ? ` (${drone.droneSerial})` : ''} — double-click to rename` : displayName}
+                    title={drone.droneSerial ? `${displayName}${hasDuplicate ? ` (${getDisplaySerial(drone.droneSerial)})` : ''} — double-click to rename` : displayName}
                   >
                     <span className="truncate">
                       {displayName}
                       {hasDuplicate && drone.droneSerial && (
-                        <span className="text-gray-500 text-[10px] ml-1">({drone.droneSerial})</span>
+                        <span className="text-gray-500 text-[10px] ml-1">({getDisplaySerial(drone.droneSerial)})</span>
                       )}
                     </span>
                     {drone.droneSerial && (
@@ -1041,12 +1046,14 @@ function BatteryHealthList({
   isLight,
   getBatteryDisplayName,
   renameBattery,
+  getDisplaySerial,
 }: {
   batteries: { batterySerial: string; flightCount: number; totalDurationSecs: number }[];
   points: BatteryHealthPoint[];
   isLight: boolean;
   getBatteryDisplayName: (serial: string) => string;
   renameBattery: (serial: string, displayName: string) => void;
+  getDisplaySerial: (serial: string) => string;
 }) {
   const [editingSerial, setEditingSerial] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
@@ -1307,7 +1314,7 @@ function BatteryHealthList({
                   <span
                     className="text-gray-300 font-medium truncate flex items-center justify-end gap-1 group cursor-pointer"
                     onDoubleClick={() => handleStartRename(battery.batterySerial)}
-                    title={`${displayName}${displayName !== battery.batterySerial ? ` (${battery.batterySerial})` : ''} — double-click to rename`}
+                    title={`${displayName}${displayName !== battery.batterySerial && displayName !== '*****' ? ` (${getDisplaySerial(battery.batterySerial)})` : ''} — double-click to rename`}
                   >
                     <span className="truncate">{displayName}</span>
                     <button

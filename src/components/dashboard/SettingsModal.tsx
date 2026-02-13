@@ -50,6 +50,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     updateStatus,
     latestVersion,
     loadApiKeyType,
+    hideSerialNumbers,
+    setHideSerialNumbers,
   } = useFlightStore();
 
   const [showBadgeModal, setShowBadgeModal] = useState(false);
@@ -353,6 +355,34 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   { value: 'light', label: 'Light' },
                 ]}
               />
+            </div>
+
+            {/* Hide Serial Numbers */}
+            <div>
+              <button
+                type="button"
+                onClick={() => setHideSerialNumbers(!hideSerialNumbers)}
+                className="flex items-center justify-between gap-3 w-full text-[0.85rem] text-gray-300"
+                aria-pressed={hideSerialNumbers}
+              >
+                <span>Hide serial numbers</span>
+                <span
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full border transition-all ${
+                    hideSerialNumbers
+                      ? 'bg-dji-primary/90 border-dji-primary'
+                      : 'bg-dji-surface border-gray-600'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                      hideSerialNumbers ? 'translate-x-4' : 'translate-x-1'
+                    }`}
+                  />
+                </span>
+              </button>
+              <p className="text-xs text-gray-500 mt-1">
+                Mask aircraft and battery serial numbers for privacy.
+              </p>
             </div>
 
             {/* Smart Tags */}
