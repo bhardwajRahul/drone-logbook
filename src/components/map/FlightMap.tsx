@@ -319,7 +319,7 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, telemetry, th
     height: number; speed: number; distance: number; progress: number;
     lat: number; lng: number;
   } | null>(null);
-  const { unitSystem } = useFlightStore();
+  const { unitSystem, mapSyncEnabled, setMapReplayProgress } = useFlightStore();
   const mapRef = useRef<MapRef | null>(null);
   const deckRef = useRef<any>(null);
 
@@ -415,6 +415,20 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, telemetry, th
     const alt = pLo[2] + (pHi[2] - pLo[2]) * frac;
     return { lng, lat, alt: is3D ? alt : 0 };
   }, [track, replayProgress, is3D]);
+
+  // Sync replay progress to store for chart axis pointer
+  useEffect(() => {
+    if (mapSyncEnabled) {
+      setMapReplayProgress(replayProgress);
+    }
+  }, [mapSyncEnabled, replayProgress, setMapReplayProgress]);
+
+  // Clear store progress when sync is disabled
+  useEffect(() => {
+    if (!mapSyncEnabled) {
+      setMapReplayProgress(0);
+    }
+  }, [mapSyncEnabled, setMapReplayProgress]);
 
   // Build DeckGL replay marker layers (3D-aware)
   const replayDeckLayers = useMemo(() => {

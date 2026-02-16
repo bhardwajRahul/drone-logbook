@@ -86,6 +86,12 @@ interface FlightState {
   setHideSerialNumbers: (hide: boolean) => void;
   getDisplaySerial: (serial: string) => string;
 
+  // Map-Chart sync state (session only, default off)
+  mapSyncEnabled: boolean;
+  setMapSyncEnabled: (enabled: boolean) => void;
+  mapReplayProgress: number;  // Replay progress from map (0 to 1)
+  setMapReplayProgress: (progress: number) => void;
+
   // Overview map highlighted flight (single-click preview in overview mode)
   overviewHighlightedFlightId: number | null;
   setOverviewHighlightedFlightId: (flightId: number | null) => void;
@@ -152,6 +158,12 @@ export const useFlightStore = create<FlightState>((set, get) => ({
     typeof localStorage !== 'undefined'
       ? localStorage.getItem('hideSerialNumbers') === 'true'
       : false,
+
+  // Map-Chart sync state (session only, default off)
+  mapSyncEnabled: false,
+  mapReplayProgress: 0,
+  setMapSyncEnabled: (enabled: boolean) => set({ mapSyncEnabled: enabled }),
+  setMapReplayProgress: (progress: number) => set({ mapReplayProgress: progress }),
 
   // Overview map highlighted flight (single-click preview in overview mode)
   overviewHighlightedFlightId: null,

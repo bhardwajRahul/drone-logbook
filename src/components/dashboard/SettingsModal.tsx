@@ -28,6 +28,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeduplicating, setIsDeduplicating] = useState(false);
 
   const {
     unitSystem,
@@ -92,7 +93,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   };
 
   // True when any long-running destructive/IO operation is in progress
-  const isBusy = isBackingUp || isRestoring || isDeleting || isRegenerating;
+  const isBusy = isBackingUp || isRestoring || isDeleting || isRegenerating || isDeduplicating;
 
   // Check if API key exists on mount
   useEffect(() => {
@@ -223,6 +224,27 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     }
   };
 
+  const handleDeduplicate = async () => {
+    setIsDeduplicating(true);
+    setMessage(null);
+    try {
+      const removed = await api.deduplicateFlights();
+      if (removed > 0) {
+        // Refresh data after deduplication
+        clearSelection();
+        await loadFlights();
+        await loadOverview();
+        setMessage({ type: 'success', text: `Removed ${removed} duplicate flight${removed === 1 ? '' : 's'}.` });
+      } else {
+        setMessage({ type: 'success', text: 'No duplicate flights found.' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: `Deduplication failed: ${err}` });
+    } finally {
+      setIsDeduplicating(false);
+    }
+  };
+
   const handleBackup = async () => {
     setIsBackingUp(true);
     setMessage(null);
@@ -292,6 +314,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               {isBackingUp && 'Exporting backup…'}
               {isRestoring && 'Restoring backup…'}
               {isDeleting && 'Deleting all logs…'}
+              {isDeduplicating && 'Removing duplicate flights…'}
               {isRegenerating && (
                 <>
                   Regenerating smart tags…
@@ -712,6 +735,30 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   Delete all logs
                 </button>
               )}
+
+              {/* Deduplicate Flights */}
+              <button
+                onClick={handleDeduplicate}
+                disabled={isBusy}
+                className="mt-3 w-full py-2 px-3 rounded-lg border border-violet-600 text-violet-400 hover:bg-violet-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              >
+                {isDeduplicating ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
+                      <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-75" />
+                    </svg>
+                    Scanning for duplicates…
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Remove duplicate flights
+                  </span>
+                )}
+              </button>
 
               {/* Clear Sync Blacklist */}
               {blacklistCount > 0 && (

@@ -4,7 +4,7 @@
  * Optimized for performance with large datasets
  */
 
-import { useMemo, useRef, useCallback, useState } from 'react';
+import { useMemo, useRef, useCallback, useState, useEffect } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption, ECharts, LineSeriesOption } from 'echarts';
 import type { TelemetryData } from '@/types';
@@ -21,6 +21,9 @@ export function TelemetryCharts({ data, unitSystem, startTime }: TelemetryCharts
   const chartsRef = useRef<ECharts[]>([]);
   const isSyncingRef = useRef(false);
   const themeMode = useFlightStore((state) => state.themeMode);
+  const mapSyncEnabled = useFlightStore((state) => state.mapSyncEnabled);
+  const setMapSyncEnabled = useFlightStore((state) => state.setMapSyncEnabled);
+  const mapReplayProgress = useFlightStore((state) => state.mapReplayProgress);
   const resolvedTheme = useMemo(() => resolveThemeMode(themeMode), [themeMode]);
   const splitLineColor = resolvedTheme === 'light' ? '#e2e8f0' : '#2a2a4e';
   const tooltipFormatter = useMemo(
@@ -124,6 +127,32 @@ export function TelemetryCharts({ data, unitSystem, startTime }: TelemetryCharts
     [syncZoom]
   );
 
+  // Show vertical line indicator when map replay progress changes
+  useEffect(() => {
+    if (!mapSyncEnabled || mapReplayProgress === 0) {
+      // Clear axis pointer when not syncing or at start
+      chartsRef.current.forEach((chart) => {
+        chart.dispatchAction({
+          type: 'hideTip',
+        });
+      });
+      return;
+    }
+
+    const dataLength = data.time?.length ?? 0;
+    if (dataLength === 0) return;
+
+    const dataIndex = Math.round(mapReplayProgress * (dataLength - 1));
+
+    chartsRef.current.forEach((chart) => {
+      chart.dispatchAction({
+        type: 'showTip',
+        seriesIndex: 0,
+        dataIndex,
+      });
+    });
+  }, [mapSyncEnabled, mapReplayProgress, data.time]);
+
   // Memoize chart options to prevent unnecessary re-renders
   const altitudeSpeedOption = useMemo(
     () =>
@@ -164,6 +193,20 @@ export function TelemetryCharts({ data, unitSystem, startTime }: TelemetryCharts
   return (
     <div className="space-y-4">
       <div className="flex justify-end gap-1.5">
+        <button
+          onClick={() => setMapSyncEnabled(!mapSyncEnabled)}
+          className={`text-xs border rounded px-2 py-1 transition-colors ${
+            mapSyncEnabled
+              ? 'text-drone-accent border-drone-accent/50 bg-drone-accent/10'
+              : 'text-gray-400 hover:text-white border-gray-700'
+          }`}
+          title={mapSyncEnabled ? 'Disable map sync' : 'Enable map sync'}
+        >
+          <svg className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+          </svg>
+          Map sync
+        </button>
         <button
           onClick={toggleDragZoom}
           className={`text-xs border rounded px-2 py-1 transition-colors ${
