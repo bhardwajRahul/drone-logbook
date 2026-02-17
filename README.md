@@ -105,8 +105,7 @@ Want to quickly test the tool before committing to a full installation? Try the 
 <a href="https://app.opendronelog.com">
     <img src="https://img.shields.io/badge/Launch-Webapp-red?style=for-the-badge&logo=globe" alt="Launch Webapp" height="48"/>
 </a>
-
-<br>
+<br><br>
 
 - **Zero setup** – just open the link in your browser
 - **Perfect for evaluation** – see if the tool fits your needs before installing
