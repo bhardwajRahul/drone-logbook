@@ -100,7 +100,7 @@ There is no installation step if you want to use the standalone binary builds, j
 
 ### Try the Webapp First (No Installation Required)
 
-Want to quickly test the tool before committing to a full installation? Try the hosted webapp at **[app.opendronelog.com](https://app.opendronelog.com)**!
+Want to quickly test the tool before committing to a full installation? Try the hosted webapp at **<a href="https://app.opendronelog.com" target="_blank">app.opendronelog.com</a>**!
 
 - **Zero setup** – just open the link in your browser
 - **Perfect for evaluation** – see if the tool fits your needs before installing
