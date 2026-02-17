@@ -290,6 +290,8 @@ pub struct TelemetryData {
     pub is_photo: Vec<Option<bool>>,
     /// Video recording indicator (true when recording)
     pub is_video: Vec<Option<bool>>,
+    /// Flight mode (e.g., "GPS", "ATTI", "Sport")
+    pub flight_mode: Vec<Option<String>>,
 }
 
 impl TelemetryData {
@@ -327,6 +329,7 @@ impl TelemetryData {
         let mut rc_rudder = Vec::with_capacity(n);
         let mut is_photo = Vec::with_capacity(n);
         let mut is_video = Vec::with_capacity(n);
+        let mut flight_mode = Vec::with_capacity(n);
 
         for r in records {
             time.push((r.timestamp_ms - base_time) as f64 / 1000.0);
@@ -355,6 +358,7 @@ impl TelemetryData {
             rc_rudder.push(r.rc_rudder);
             is_photo.push(r.is_photo);
             is_video.push(r.is_video);
+            flight_mode.push(r.flight_mode.clone());
         }
 
         Self {
@@ -384,6 +388,7 @@ impl TelemetryData {
             rc_rudder,
             is_photo,
             is_video,
+            flight_mode,
         }
     }
 

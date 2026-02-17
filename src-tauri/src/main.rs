@@ -12,6 +12,7 @@
 
 mod api;
 mod database;
+mod dronelogbook_parser;
 mod litchi_parser;
 mod models;
 mod parser;
@@ -206,11 +207,11 @@ mod tauri_app {
             parse_result.metadata.battery_serial.as_deref(),
             parse_result.metadata.start_time,
         ).unwrap_or(None) {
-            log::info!("Skipping duplicate flight (signature match): {} — matches flight '{}' in database", file_path, matching_flight);
+            log::info!("Skipping duplicate flight (signature match): {} - matches flight '{}' in database", file_path, matching_flight);
             return Ok(ImportResult {
                 success: false,
                 flight_id: None,
-                message: format!("Duplicate flight — matches '{}' (same drone, battery, and start time)", matching_flight),
+                message: format!("Duplicate flight: matches '{}' (same drone, battery, and start time)", matching_flight),
                 point_count: 0,
                 file_hash: parse_result.metadata.file_hash.clone(),
             });

@@ -664,13 +664,38 @@ export function FlightList({
   };
 
   const buildCsv = (data: FlightDataResponse): string => {
-    const { telemetry } = data;
+    const { telemetry, flight } = data;
     if (!telemetry.time || telemetry.time.length === 0) return '';
 
     const trackAligned = data.track.length === telemetry.time.length;
     const latSeries = telemetry.latitude ?? [];
     const lngSeries = telemetry.longitude ?? [];
     
+    // Build metadata JSON for the first row's metadata column
+    const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'unknown';
+    const metadata: Record<string, string | number | null> = {
+      format: 'Drone Logbook CSV Export',
+      app_version: appVersion,
+      exported_at: new Date().toISOString(),
+      display_name: flight.displayName,
+      drone_model: flight.droneModel,
+      drone_serial: flight.droneSerial,
+      aircraft_name: flight.aircraftName,
+      battery_serial: flight.batterySerial,
+      start_time: flight.startTime,
+      duration_secs: flight.durationSecs,
+      total_distance_m: flight.totalDistance,
+      max_altitude_m: flight.maxAltitude,
+      max_speed_ms: flight.maxSpeed,
+      home_lat: flight.homeLat ?? null,
+      home_lon: flight.homeLon ?? null,
+    };
+    // Remove null values for cleaner JSON
+    const cleanMetadata = Object.fromEntries(
+      Object.entries(metadata).filter(([_, v]) => v != null)
+    );
+    const metadataJson = JSON.stringify(cleanMetadata);
+
     // Calculate distance to home
     const computeDistanceToHome = () => {
       const lats = telemetry.latitude ?? [];
@@ -731,6 +756,14 @@ export function FlightList({
       'pitch_deg',
       'roll_deg',
       'yaw_deg',
+      'rc_aileron',
+      'rc_elevator',
+      'rc_throttle',
+      'rc_rudder',
+      'is_photo',
+      'is_video',
+      'flight_mode',
+      'metadata',
     ];
 
     const escapeCsv = (value: string) => {
@@ -744,6 +777,16 @@ export function FlightList({
     const getValue = (arr: (number | null)[] | undefined, index: number) => {
       const val = arr?.[index];
       return val === null || val === undefined ? '' : String(val);
+    };
+
+    const getBoolValue = (arr: (boolean | null)[] | undefined, index: number) => {
+      const val = arr?.[index];
+      return val === null || val === undefined ? '' : val ? '1' : '0';
+    };
+
+    const getStrValue = (arr: (string | null)[] | undefined, index: number) => {
+      const val = arr?.[index];
+      return val === null || val === undefined ? '' : val;
     };
 
     const rows = telemetry.time.map((time, index) => {
@@ -776,6 +819,15 @@ export function FlightList({
         getValue(telemetry.pitch, index),
         getValue(telemetry.roll, index),
         getValue(telemetry.yaw, index),
+        getValue(telemetry.rcAileron, index),
+        getValue(telemetry.rcElevator, index),
+        getValue(telemetry.rcThrottle, index),
+        getValue(telemetry.rcRudder, index),
+        getBoolValue(telemetry.isPhoto, index),
+        getBoolValue(telemetry.isVideo, index),
+        getStrValue(telemetry.flightMode, index),
+        // Metadata JSON only on first row (time 0)
+        index === 0 ? metadataJson : '',
       ].map(escapeCsv);
       return values.join(',');
     });
@@ -784,7 +836,19 @@ export function FlightList({
   };
 
   const buildJson = (data: FlightDataResponse): string => {
-    return JSON.stringify(data, null, 2);
+    // Create an enriched export with explicit metadata for re-import support
+    const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'unknown';
+    const exportData = {
+      _exportInfo: {
+        format: 'Drone Logbook JSON Export',
+        appVersion,
+        exportedAt: new Date().toISOString(),
+      },
+      flight: data.flight,
+      telemetry: data.telemetry,
+      track: data.track,
+    };
+    return JSON.stringify(exportData, null, 2);
   };
 
   const escapeXml = (str: string | number | null | undefined): string => {
@@ -1000,7 +1064,8 @@ ${points}
 
       for (let i = 0; i < filteredFlights.length; i++) {
         const flight = filteredFlights[i];
-        const safeName = sanitizeFileName((flight as any).original_filename || `flight_${flight.id}`);
+        const baseName = flight.displayName || flight.fileName || `flight`;
+        const safeName = sanitizeFileName(`${baseName}_${flight.id}`);
         setExportProgress({ done: i, total: filteredFlights.length, currentFile: safeName });
         
         try {
@@ -1059,7 +1124,8 @@ ${points}
 
       for (let i = 0; i < filteredFlights.length; i++) {
         const flight = filteredFlights[i];
-        const safeName = (flight as any).original_filename || `flight_${flight.id}`;
+        const baseName = flight.displayName || flight.fileName || `flight`;
+        const safeName = sanitizeFileName(`${baseName}_${flight.id}`);
         setExportProgress({ done: i, total: filteredFlights.length, currentFile: safeName });
         
         try {

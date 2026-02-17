@@ -115,11 +115,11 @@ async fn import_log(
         parse_result.metadata.battery_serial.as_deref(),
         parse_result.metadata.start_time,
     ).unwrap_or(None) {
-        log::info!("Skipping duplicate flight (signature match): {} — matches flight '{}' in database", file_name, matching_flight);
+        log::info!("Skipping duplicate flight (signature match): {} - matches flight '{}' in database", file_name, matching_flight);
         return Ok(Json(ImportResult {
             success: false,
             flight_id: None,
-            message: format!("Duplicate flight — matches '{}' (same drone, battery, and start time)", matching_flight),
+            message: format!("Duplicate flight: matches '{}' (same drone, battery, and start time)", matching_flight),
             point_count: 0,
             file_hash: parse_result.metadata.file_hash.clone(),
         }));

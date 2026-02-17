@@ -61,6 +61,8 @@ export interface TelemetryData {
   isPhoto?: (boolean | null)[];
   /** Video recording indicator (true when recording) */
   isVideo?: (boolean | null)[];
+  /** Flight mode (e.g., "GPS", "ATTI", "Sport") */
+  flightMode?: (string | null)[];
 }
 
 /** Complete flight data response from backend */
