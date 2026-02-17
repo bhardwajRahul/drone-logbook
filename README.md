@@ -10,6 +10,10 @@
     <a href="https://opendronelog.com">
         <img src="https://img.shields.io/badge/opendronelog.com-blue?style=for-the-badge&logo=globe" alt="Visit Website" height="48"/>
     </a>
+    &nbsp;&nbsp;
+    <a href="https://app.opendronelog.com">
+        <img src="https://img.shields.io/badge/Launch-Webapp-red?style=for-the-badge&logo=globe" alt="Launch Webapp" height="48"/>
+    </a>
 </p>
 
 
@@ -92,7 +96,19 @@ Litchi flight logs can be exported as CSV files from the Litchi app. The parser 
 
 ## Setup and installation (Windows/MacOS)
 
-There is no installation step if you want to use the standalone binary builds, just visit the latest [release page](https://github.com/arpanghosh8453/drone-logbook/releases), and download the appropriate binary for Windows or MacOS and run them. 
+There is no installation step if you want to use the standalone binary builds, just visit the latest [release page](https://github.com/arpanghosh8453/drone-logbook/releases), and download the appropriate binary for Windows or MacOS and run them.
+
+### Try the Webapp First (No Installation Required)
+
+Want to quickly test the tool before committing to a full installation? Try the hosted webapp at **[app.opendronelog.com](https://app.opendronelog.com)**!
+
+- **Zero setup** – just open the link in your browser
+- **Perfect for evaluation** – see if the tool fits your needs before installing
+- **Single flight visualization** – upload and analyze one flight log at a time
+- **All core features** – view telemetry charts, 3D flight path replay, and flight statistics
+- **No data persistence** – your data is processed locally in the browser and not stored on any server
+
+> **Note:** For the full experience with multi-flight management, database persistence, filtering, overview analytics, and backup/restore capabilities, use the desktop app or self-hosted Docker deployment. 
 
 ### macOS Users: "Damaged File" Error Fix
 
