@@ -728,7 +728,8 @@ When a dropdown is open:
 ### Docker Users
 
 - Mount your log folder for automatic import
-- Set the `SYNC_LOGS_PATH` environment variable
+- Set the `SYNC_LOGS_PATH` environment variable to enable folder sync
+- Set the `SYNC_INTERVAL` environment variable with a cron expression for scheduled automatic sync (e.g., `0 0 */8 * * *` for every 8 hours)
 - Data persists in the Docker volume and survives container updates
 
 ### Privacy

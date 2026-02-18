@@ -246,10 +246,11 @@ All flight data (DuckDB database, cached decryption keys) is stored in a Docker 
 | `DATA_DIR`      | `/data/drone-logbook`  | Database and config storage                                                 |
 | `RUST_LOG`      | `info`                 | Log level (debug, info, warn)                                               |
 | `SYNC_LOGS_PATH`| (not set)              | Path to mounted folder for automatic log import (e.g., `/sync-logs`)        |
+| `SYNC_INTERVAL` | (not set)              | Cron expression for scheduled sync (e.g., `0 0 */8 * * *` for every 8 hours)|
 
 ### Automatic log sync (Docker)
 
-You can mount a folder containing your drone flight logs and have the app automatically import new files on page load:
+You can mount a folder containing your drone flight logs and have the app automatically import new files:
 
 1. Uncomment the volume mount in `docker-compose.yml` and set the path to your logs folder:
    ```yaml
@@ -259,7 +260,24 @@ You can mount a folder containing your drone flight logs and have the app automa
    ```yaml
    - SYNC_LOGS_PATH=/sync-logs
    ```
-3. Restart the container. New log files will be automatically imported when you open the app.
+3. (Optional) Enable scheduled automatic sync by setting a cron expression:
+   ```yaml
+   - SYNC_INTERVAL=0 0 */8 * * *
+   ```
+4. Restart the container.
+
+**Sync behavior:**
+- Without `SYNC_INTERVAL`: Manual sync only - use the "Sync" button in the web interface to import new files
+- With `SYNC_INTERVAL`: The server automatically syncs at the scheduled times, plus manual sync via the button
+
+**Common cron expressions:**
+| Expression | Schedule |
+|------------|----------|
+| `0 0 */8 * * *` | Every 8 hours |
+| `0 0 0 * * *` | Daily at midnight |
+| `0 0 */2 * * *` | Every 2 hours |
+| `0 30 6 * * *` | Daily at 6:30 AM |
+| `0 0 0 * * 0` | Weekly on Sunday at midnight |
 
 The sync status and a manual "Sync" button will appear in the Import section when configured. During sync, the app shows file-by-file progress (current filename, X of Y counter) matching the desktop app experience.
 

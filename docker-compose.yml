@@ -10,8 +10,10 @@ services:
     environment:
       - DATA_DIR=/data/drone-logbook
       - RUST_LOG=info
-      # Uncomment to enable automatic sync from mounted folder on browser load
+      # Uncomment to enable automatic sync from mounted folder
       # - SYNC_LOGS_PATH=/sync-logs
+      # Uncomment to enable scheduled sync (cron expression, default: every 8 hours)
+      # - SYNC_INTERVAL=0 0 */8 * * *
     restart: unless-stopped
 
 volumes:

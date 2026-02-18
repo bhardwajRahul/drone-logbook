@@ -14,6 +14,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
+use tokio_cron_scheduler::{Job, JobScheduler};
 
 use crate::api::DjiApi;
 use crate::database::Database;
@@ -684,6 +685,8 @@ struct SyncResponse {
     errors: usize,
     message: String,
     sync_path: Option<String>,
+    /// Whether automatic scheduled sync is enabled (SYNC_INTERVAL is set)
+    auto_sync: bool,
 }
 
 /// Response for listing sync folder files
@@ -707,12 +710,14 @@ struct SyncFileResponse {
 /// GET /api/sync/config — Get the sync folder path configuration
 async fn get_sync_config() -> Json<SyncResponse> {
     let sync_path = std::env::var("SYNC_LOGS_PATH").ok();
+    let auto_sync = std::env::var("SYNC_INTERVAL").is_ok();
     Json(SyncResponse {
         processed: 0,
         skipped: 0,
         errors: 0,
         message: if sync_path.is_some() { "Sync folder configured".to_string() } else { "No sync folder configured".to_string() },
         sync_path,
+        auto_sync,
     })
 }
 
@@ -909,6 +914,7 @@ async fn sync_from_folder(
                 errors: 0,
                 message: "SYNC_LOGS_PATH environment variable not configured".to_string(),
                 sync_path: None,
+                auto_sync: false,
             }));
         }
     };
@@ -921,6 +927,7 @@ async fn sync_from_folder(
             errors: 0,
             message: format!("Sync folder does not exist: {}", sync_path),
             sync_path: Some(sync_path),
+            auto_sync: false,
         }));
     }
 
@@ -959,6 +966,7 @@ async fn sync_from_folder(
             errors: 0,
             message: "No log files found in sync folder".to_string(),
             sync_path: Some(sync_path),
+            auto_sync: false,
         }));
     }
 
@@ -1049,6 +1057,7 @@ async fn sync_from_folder(
         errors,
         message: msg,
         sync_path: Some(sync_path),
+        auto_sync: false,
     }))
 }
 
@@ -1102,6 +1111,23 @@ pub async fn start_server(data_dir: PathBuf) -> Result<(), Box<dyn std::error::E
     let db = Database::new(data_dir)?;
     let state = WebAppState { db: Arc::new(db) };
 
+    // Start the scheduled sync if SYNC_INTERVAL and SYNC_LOGS_PATH are configured
+    if let (Ok(sync_path), Ok(sync_interval)) = (
+        std::env::var("SYNC_LOGS_PATH"),
+        std::env::var("SYNC_INTERVAL"),
+    ) {
+        log::info!("Scheduled sync enabled: path={}, interval={}", sync_path, sync_interval);
+        let scheduler_state = state.clone();
+        
+        tokio::spawn(async move {
+            if let Err(e) = start_sync_scheduler(scheduler_state, &sync_interval).await {
+                log::error!("Failed to start sync scheduler: {}", e);
+            }
+        });
+    } else if std::env::var("SYNC_LOGS_PATH").is_ok() {
+        log::info!("SYNC_LOGS_PATH configured but SYNC_INTERVAL not set. Sync is manual-only (via Sync button in web interface).");
+    }
+
     let router = build_router(state);
 
     let host = std::env::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
@@ -1114,4 +1140,154 @@ pub async fn start_server(data_dir: PathBuf) -> Result<(), Box<dyn std::error::E
     axum::serve(listener, router).await?;
 
     Ok(())
+}
+
+/// Start the cron scheduler for automatic folder sync
+async fn start_sync_scheduler(state: WebAppState, cron_expr: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let sched = JobScheduler::new().await?;
+    
+    // Validate cron expression
+    let cron_schedule = cron_expr.parse::<cron::Schedule>()
+        .map_err(|e| format!("Invalid cron expression '{}': {}", cron_expr, e))?;
+    
+    // Log next few scheduled times for debugging
+    let upcoming: Vec<_> = cron_schedule.upcoming(chrono::Utc).take(3).collect();
+    log::info!("Next scheduled sync times: {:?}", upcoming);
+    
+    let state_clone = state.clone();
+    let cron_expr_owned = cron_expr.to_string();
+    
+    let job = Job::new_async(cron_expr_owned.as_str(), move |_uuid, _lock| {
+        let state = state_clone.clone();
+        Box::pin(async move {
+            log::info!("Starting scheduled folder sync...");
+            match run_scheduled_sync(&state).await {
+                Ok((processed, skipped, errors)) => {
+                    log::info!(
+                        "Scheduled sync complete: {} imported, {} skipped, {} errors",
+                        processed, skipped, errors
+                    );
+                }
+                Err(e) => {
+                    log::error!("Scheduled sync failed: {}", e);
+                }
+            }
+        })
+    })?;
+    
+    sched.add(job).await?;
+    sched.start().await?;
+    
+    log::info!("Sync scheduler started with cron expression: {}", cron_expr);
+    
+    // Keep the scheduler running
+    loop {
+        tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
+    }
+}
+
+/// Run the folder sync operation (called by scheduler)
+async fn run_scheduled_sync(state: &WebAppState) -> Result<(usize, usize, usize), String> {
+    let sync_path = std::env::var("SYNC_LOGS_PATH")
+        .map_err(|_| "SYNC_LOGS_PATH not configured".to_string())?;
+    
+    let sync_dir = std::path::PathBuf::from(&sync_path);
+    if !sync_dir.exists() {
+        return Err(format!("Sync folder does not exist: {}", sync_path));
+    }
+    
+    let entries = std::fs::read_dir(&sync_dir)
+        .map_err(|e| format!("Failed to read sync folder: {}", e))?;
+    
+    let log_files: Vec<PathBuf> = entries
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| {
+            if let Ok(file_type) = entry.file_type() {
+                if file_type.is_file() {
+                    let name = entry.file_name().to_string_lossy().to_lowercase();
+                    return name.ends_with(".txt") || name.ends_with(".csv");
+                }
+            }
+            false
+        })
+        .map(|entry| entry.path())
+        .collect();
+    
+    if log_files.is_empty() {
+        return Ok((0, 0, 0));
+    }
+    
+    let parser = LogParser::new(&state.db);
+    let mut processed = 0usize;
+    let mut skipped = 0usize;
+    let mut errors = 0usize;
+    
+    // Check smart tags setting
+    let config_path = state.db.data_dir.join("config.json");
+    let tags_enabled = if config_path.exists() {
+        std::fs::read_to_string(&config_path)
+            .ok()
+            .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
+            .and_then(|v| v.get("smart_tags_enabled").and_then(|v| v.as_bool()))
+            .unwrap_or(true)
+    } else {
+        true
+    };
+    
+    for file_path in log_files {
+        let file_name = file_path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+        
+        let parse_result = match parser.parse_log(&file_path).await {
+            Ok(result) => result,
+            Err(crate::parser::ParserError::AlreadyImported(_)) => {
+                skipped += 1;
+                continue;
+            }
+            Err(e) => {
+                log::warn!("Scheduled sync: Failed to parse {}: {}", file_name, e);
+                errors += 1;
+                continue;
+            }
+        };
+        
+        // Check for duplicate flight
+        if state.db.is_duplicate_flight(
+            parse_result.metadata.drone_serial.as_deref(),
+            parse_result.metadata.battery_serial.as_deref(),
+            parse_result.metadata.start_time,
+        ).unwrap_or(None).is_some() {
+            skipped += 1;
+            continue;
+        }
+        
+        // Insert flight
+        let flight_id = match state.db.insert_flight(&parse_result.metadata) {
+            Ok(id) => id,
+            Err(e) => {
+                log::warn!("Scheduled sync: Failed to insert flight from {}: {}", file_name, e);
+                errors += 1;
+                continue;
+            }
+        };
+        
+        // Insert telemetry
+        if let Err(e) = state.db.bulk_insert_telemetry(flight_id, &parse_result.points) {
+            log::warn!("Scheduled sync: Failed to insert telemetry for {}: {}", file_name, e);
+            let _ = state.db.delete_flight(flight_id);
+            errors += 1;
+            continue;
+        }
+        
+        // Insert smart tags if enabled
+        if tags_enabled {
+            if let Err(e) = state.db.insert_flight_tags(flight_id, &parse_result.tags) {
+                log::warn!("Scheduled sync: Failed to insert tags for {}: {}", file_name, e);
+            }
+        }
+        
+        processed += 1;
+        log::debug!("Scheduled sync: Imported {}", file_name);
+    }
+    
+    Ok((processed, skipped, errors))
 }

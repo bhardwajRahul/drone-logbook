@@ -462,8 +462,8 @@ export function FlightImporter() {
           }
           
           const config = await getSyncConfig();
-          if (!config.syncPath) {
-            // No sync folder configured on server
+          if (!config.syncPath || !config.autoSync) {
+            // No sync folder configured or scheduled sync not enabled - manual sync only
             setIsBackgroundSyncing(false);
             return;
           }

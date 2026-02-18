@@ -27,6 +27,8 @@ tauri-plugin-window-state = { version = "2", optional = true }
 # Web server (optional — only for Docker/web builds)
 axum = { version = "0.7", features = ["multipart"], optional = true }
 tower-http = { version = "0.5", features = ["cors", "fs"], optional = true }
+tokio-cron-scheduler = { version = "0.13", optional = true }
+cron = { version = "0.15", optional = true }
 
 # Serialization
 serde = { version = "1", features = ["derive"] }
@@ -82,7 +84,7 @@ tauri-app = [
     "dep:tauri-plugin-window-state",
     "custom-protocol",
 ]
-web = ["dep:axum", "dep:tower-http"]
+web = ["dep:axum", "dep:tower-http", "dep:tokio-cron-scheduler", "dep:cron"]
 custom-protocol = ["tauri/custom-protocol"]
 
 [dev-dependencies]

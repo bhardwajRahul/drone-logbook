@@ -369,6 +369,8 @@ export interface SyncConfig {
   errors: number;
   message: string;
   syncPath: string | null;
+  /** Whether automatic scheduled sync is enabled (SYNC_INTERVAL is set on server) */
+  autoSync: boolean;
 }
 
 export interface SyncFilesResponse {
