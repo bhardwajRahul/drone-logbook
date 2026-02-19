@@ -4,11 +4,6 @@ on:
   release:
     types: [published]
   workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Image tag (defaults to "latest")'
-        required: false
-        default: 'latest'
 
 env:
   REGISTRY: ghcr.io
@@ -101,17 +96,36 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Checkout (for manual dispatch tag detection)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version components
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            TAG="${{ github.ref_name }}"
+          else
+            # For manual dispatch, get the latest semver tag
+            TAG=$(git tag -l --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+          fi
+          echo "full=${TAG}" >> $GITHUB_OUTPUT
+          echo "major_minor=${TAG%.*}" >> $GITHUB_OUTPUT
+
       - name: Extract metadata (tags, labels)
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          flavor: |
-            latest=auto
           tags: |
-            # Use ref for release tags (supports tags without 'v' prefix like 2.13.0)
-            type=ref,event=tag
-            type=raw,value=${{ inputs.tag || 'latest' }},enable=${{ github.event_name == 'workflow_dispatch' }}
+            # Full version tag (e.g., 2.13.0)
+            type=raw,value=${{ steps.version.outputs.full }}
+            # Major.minor tag (e.g., 2.13)
+            type=raw,value=${{ steps.version.outputs.major_minor }}
+            # Latest tag
+            type=raw,value=latest
 
       - name: Create multi-arch manifest and push
         working-directory: /tmp/digests
