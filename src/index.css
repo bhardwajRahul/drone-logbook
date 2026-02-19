@@ -50,8 +50,15 @@ body.theme-light .text-white {
   color: #0f172a !important;
 }
 
+/* FlyCard content: always white text regardless of theme (has image background) */
+body.theme-light .flycard-content .text-white,
+.flycard-content .text-white {
+  color: #ffffff !important;
+}
+
 /* Keep button text white on colored backgrounds in light mode */
-body.theme-light .btn-primary {
+body.theme-light .btn-primary,
+body.theme-light .bg-drone-primary {
   color: #ffffff !important;
 }
 

@@ -286,7 +286,7 @@ export function FlyCardGenerator({ flight, unitSystem, onClose }: FlyCardGenerat
           ) : (
             <div
               ref={cardRef}
-              className="relative w-full aspect-square"
+              className="flycard-content relative w-full aspect-square"
               style={{
                 backgroundImage: currentBackground ? `url(${currentBackground})` : 'none',
                 backgroundSize: 'cover',
