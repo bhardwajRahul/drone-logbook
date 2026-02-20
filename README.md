@@ -128,6 +128,9 @@ Simply download the app from the [releases page](https://github.com/arpanghosh84
 
 There is no installation step if you want to use the standalone binary builds, just visit the latest [release page](https://github.com/arpanghosh8453/drone-logbook/releases), and download the appropriate binary for Windows or MacOS and run them.
 
+> [!WARNING]
+> For macOS, there are [additional steps](#macos-users-damaged-file-error-fix) required before you can use the application. 
+
 > [!TIP]
 > Explore the [full manual](/docs/manual.md) if you want to have a comprehensive overview of all the available options and features inside the app. 
 
