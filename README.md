@@ -153,13 +153,28 @@ Want to quickly test the tool before committing to a full installation? Try the 
 <img width="320" height="311" alt="image" src="https://github.com/user-attachments/assets/2787ffff-9961-433c-898a-b548c738f1a2" />
 
 > [!IMPORTANT]
-If you see **"Drone Logbook is damaged and can't be opened"** on macOS (especially on M1/M2/M3/M4/M5 Macs), this is a Gatekeeper security warning for unsigned apps, **not a corrupted file**. For signing the files with a official apple developer account, it costs $99/year!
+> If you see **"Drone Logbook is damaged and can't be opened"** on macOS, this is a Gatekeeper security warning for unsigned apps, **not a corrupted file**. Apple charges $99/year for developer signing, so we provide these free workarounds instead.
 
-**Quick Fix Remove quarantine attribute**
+#### Method 1: Right-Click to Open
+
+This is the simplest method and works for most users:
+
+1. **Locate the app** in your Applications folder (or wherever you placed it after downloading)
+2. **Right-click** (or Control+click) on "Drone Logbook.app"
+3. **Select "Open"** from the context menu
+4. **Click "Open"** in the dialog that appears
+
+#### Method 2: Terminal Command
+
+Open **Terminal** (search for "Terminal" in Spotlight) and run:
+
+Simply type `xattr -cr ` (with a space at the end), then **drag and drop** the app onto the Terminal window - it will auto-fill the file path:
 
 ```bash
-xattr -d com.apple.quarantine <the-app-file> # you can drag and drop the app to the terminal instead of typing the full path
+xattr -cr <delete-this-part-after-cr-and-drag-and-drop-the-app-here>
 ```
+
+Then press Enter and try opening the app again.
 
 ## Usage
 
