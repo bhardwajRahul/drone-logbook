@@ -229,7 +229,7 @@ Or use docker-compose (uses the same pre-built image):
 
 ```bash
 git clone https://github.com/arpanghosh8453/drone-logbook
-cd dji-logbook
+cd drone-logbook
 docker compose up -d
 ```
 
