@@ -67,6 +67,8 @@ pub struct ParseResult {
     pub tags: Vec<String>,
     /// Manual tags to preserve from re-imported CSV exports (inserted with 'manual' type)
     pub manual_tags: Vec<String>,
+    /// Notes to preserve from re-imported CSV exports
+    pub notes: Option<String>,
 }
 
 /// DJI Log Parser wrapper
@@ -273,7 +275,7 @@ impl<'a> LogParser<'a> {
         let tags = Self::generate_smart_tags(&metadata, &stats);
         log::info!("Generated smart tags: {:?}", tags);
 
-        Ok(ParseResult { metadata, points, tags, manual_tags: Vec::new() })
+        Ok(ParseResult { metadata, points, tags, manual_tags: Vec::new(), notes: None })
     }
 
     /// Generate smart tags based on flight metadata and statistics

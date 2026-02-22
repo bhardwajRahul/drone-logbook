@@ -279,6 +279,13 @@ mod tauri_app {
             }
         }
 
+        // Insert notes from re-imported CSV exports
+        if let Some(ref notes) = parse_result.notes {
+            if let Err(e) = state.db.update_flight_notes(flight_id, Some(notes.as_str())) {
+                log::warn!("Failed to insert notes for flight {}: {}", flight_id, e);
+            }
+        }
+
         log::info!(
             "Successfully imported flight {} with {} points in {:.1}s",
             flight_id,
