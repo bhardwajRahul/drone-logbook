@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useFlightStore } from '@/stores/flightStore';
 import { Dashboard } from '@/components/dashboard/Dashboard';
+import { isWebMode } from '@/lib/api';
 
 class AppErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -50,6 +51,27 @@ function App() {
   useEffect(() => {
     loadFlights();
   }, [loadFlights]);
+
+  // Ctrl+Q to close window (Tauri desktop only)
+  useEffect(() => {
+    if (isWebMode()) return;
+
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key.toLowerCase() === 'q') {
+        e.preventDefault();
+        try {
+          const { getCurrentWindow } = await import('@tauri-apps/api/window');
+          const win = getCurrentWindow();
+          await win.close();
+        } catch (err) {
+          console.error('Failed to close window:', err);
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
