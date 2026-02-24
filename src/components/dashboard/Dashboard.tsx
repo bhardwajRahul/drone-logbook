@@ -166,12 +166,12 @@ export function Dashboard() {
             <h1 className="text-xl font-bold text-white flex items-center gap-2">
               <img
                 src={appIcon}
-                alt="Drone Logbook"
+                alt="Open DroneLog"
                 className="w-6 h-6 rounded-md"
                 loading="lazy"
                 decoding="async"
               />
-              Drone Logbook
+              Open DroneLog
             </h1>
             <p className="text-xs text-gray-400 mt-1">
               Flight Analysis Dashboard

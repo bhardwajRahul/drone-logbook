@@ -1,6 +1,6 @@
-# Contributing to Drone Logbook
+# Contributing to Open DroneLog
 
-Thank you for your interest in contributing to Drone Logbook! We welcome meaningful additions that improve the project for the community.
+Thank you for your interest in contributing to Open DroneLog! We welcome meaningful additions that improve the project for the community.
 
 ## Before You Start
 
@@ -20,7 +20,7 @@ Before implementing a new feature and opening a pull request, please **open an i
 
 ## Custom User Scripts
 
-Looking to extend Drone Logbook with custom functionality? Check out the **[Discussions](https://github.com/arpanghosh8453/drone-logbook/discussions)** channel with the `User-Script` tag!
+Looking to extend Open DroneLog with custom functionality? Check out the **[Discussions](https://github.com/arpanghosh8453/drone-logbook/discussions)** channel with the `User-Script` tag!
 
 In the User Scripts discussions, you can:
 

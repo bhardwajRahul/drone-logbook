@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="src-tauri/icons/icon.png" alt="Drone Logbook" width="96" />
+    <img src="src-tauri/icons/icon.png" alt="Open DroneLog" width="96" />
 </p>
 
 <p align="center">
@@ -20,7 +20,7 @@
 <p align="center">A high-performance application for analyzing drone flight logs (DJI and Litchi CSV formats). Available as a Tauri v2 desktop app or a Docker-deployable web app. Built with DuckDB and React.</p>
 
 > [!IMPORTANT]
-> *DJI is a registered trademark of SZ DJI Technology Co., Ltd. This project is independent and is not affiliated with, sponsored by, authorized by, or endorsed by SZ DJI Technology Co., Ltd. or its affiliates.*
+> *DJI is a registered trademark of SZ DJI Technology Co., Ltd. DroneLogbook® is a registered trademark of DroneAnalytics Inc. This project is independent and is not affiliated with, sponsored by, authorized by, or endorsed by SZ DJI Technology Co. Ltd. or DroneAnalytics Inc. or its affiliates.*
 
 <p align="center">
     <img src="screenshots/Comparison.png" alt="Comparison chart" width="900" />
@@ -374,7 +374,7 @@ I have shipped this project with my own API key to save you from some extra pain
 
 ## Contribution Guidelines
 
-We welcome meaningful contributions to Drone Logbook! Before implementing a new feature, please open an issue first to discuss your idea with the maintainer—this ensures alignment with the project's scope and avoids wasted effort.
+We welcome meaningful contributions to Open DroneLog! Before implementing a new feature, please open an issue first to discuss your idea with the maintainer—this ensures alignment with the project's scope and avoids wasted effort.
 
 For more details, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
