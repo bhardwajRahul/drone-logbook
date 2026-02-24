@@ -126,7 +126,10 @@ Litchi flight logs can be exported as CSV files from the Litchi app. The parser 
 There is no installation step if you want to use the standalone binary builds, just visit the latest [release page](https://github.com/arpanghosh8453/open-dronelog/releases), and download the appropriate binary for Windows or MacOS and run them.
 
 > [!WARNING]
-> For macOS, there are [additional steps](#macos-users-damaged-file-error-fix) required before you can use the application. 
+> For macOS, there are [additional steps](#macos-users-damaged-file-error-fix) required before you can use the application.
+
+> [!IMPORTANT]
+> When you are copying from RC or mobile device, you can NOT directly drag and drop the files to the interface. This is because these external devices are mounted differently and only accessible to the file manager. Please copy the files to a local folder or the device sync folder before trying to upload or sync. 
 
 > [!TIP]
 > Explore the [full manual](/docs/manual.md) if you want to have a comprehensive overview of all the available options and features inside the app. 
