@@ -418,15 +418,15 @@ impl TelemetryData {
         // Collect valid GPS points
         let valid: Vec<[f64; 3]> = self.latitude.iter()
             .zip(self.longitude.iter())
-            .zip(self.height.iter().zip(self.vps_height.iter().zip(self.altitude.iter())))
-            .filter_map(|((lat, lng), (h, (vps, alt)))| {
+            .zip(self.altitude.iter().zip(self.height.iter().zip(self.vps_height.iter())))
+            .filter_map(|((lat, lng), (alt, (h, vps)))| {
                 let lat_v = (*lat)?;
                 let lng_v = (*lng)?;
                 // Skip 0,0 points
                 if lat_v.abs() < 0.000001 && lng_v.abs() < 0.000001 {
                     return None;
                 }
-                let height_v = h.or(*vps).or(*alt).unwrap_or(0.0);
+                let height_v = alt.or(*h).or(*vps).unwrap_or(0.0);
                 Some([lng_v, lat_v, height_v])
             })
             .collect();

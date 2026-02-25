@@ -389,7 +389,7 @@ export function buildKml(data: FlightDataResponse): string {
       <name>${flightName}</name>
       <styleUrl>#flightPath</styleUrl>
       <LineString>
-        <altitudeMode>relativeToGround</altitudeMode>
+        <altitudeMode>absolute</altitudeMode>
         <coordinates>${coordinates}</coordinates>
       </LineString>
     </Placemark>
