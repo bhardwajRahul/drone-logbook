@@ -60,16 +60,24 @@ fn copy_uploaded_file_web(src_path: &std::path::PathBuf, dest_folder: &std::path
     
     let dest_path = dest_folder.join(file_name);
     
+    // Compute source file hash if not provided
+    let computed_hash: String;
+    let src_hash = match file_hash {
+        Some(h) => h,
+        None => {
+            computed_hash = compute_file_hash(src_path)?;
+            &computed_hash
+        }
+    };
+    
     // If file with same name exists, check hash
     if dest_path.exists() {
         let existing_hash = compute_file_hash(&dest_path)?;
         
         // If hashes match, skip (file already exists)
-        if let Some(hash) = file_hash {
-            if existing_hash == hash {
-                log::info!("File already exists with same hash, skipping: {}", file_name);
-                return Ok(());
-            }
+        if existing_hash == src_hash {
+            log::info!("File already exists with same hash, skipping: {}", file_name);
+            return Ok(());
         }
         
         // Hashes don't match - save with hash suffix
@@ -80,7 +88,7 @@ fn copy_uploaded_file_web(src_path: &std::path::PathBuf, dest_folder: &std::path
             .and_then(|e| e.to_str())
             .unwrap_or("");
         
-        let hash_suffix = file_hash.map(|h| &h[..8]).unwrap_or("unknown");
+        let hash_suffix = &src_hash[..8.min(src_hash.len())];
         let new_name = if extension.is_empty() {
             format!("{}_{}", stem, hash_suffix)
         } else {
@@ -170,8 +178,10 @@ async fn import_log(
     let parse_result = match parser.parse_log(&temp_path).await {
         Ok(result) => result,
         Err(crate::parser::ParserError::AlreadyImported(matching_flight)) => {
+            // Compute file hash for keep-uploaded-files feature
+            let file_hash = compute_file_hash(&temp_path).ok();
             // Still copy the file even though flight is already imported
-            try_copy_file(None);
+            try_copy_file(file_hash.as_deref());
             // Clean up temp file
             let _ = std::fs::remove_file(&temp_path);
             return Ok(Json(ImportResult {
@@ -179,7 +189,7 @@ async fn import_log(
                 flight_id: None,
                 message: format!("This flight log has already been imported (matches: {})", matching_flight),
                 point_count: 0,
-                file_hash: None,
+                file_hash,
             }));
         }
         Err(e) => {
