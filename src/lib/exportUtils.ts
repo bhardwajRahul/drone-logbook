@@ -337,7 +337,7 @@ ${trackpoints}
  * Build KML export string from flight data
  */
 export function buildKml(data: FlightDataResponse): string {
-  const { flight, telemetry, track } = data;
+  const { flight, telemetry } = data;
   const flightName = escapeXml(flight.displayName || flight.fileName || 'Flight');
 
   // Handle manual entries with no telemetry - create placemark at home location
@@ -365,12 +365,23 @@ export function buildKml(data: FlightDataResponse): string {
 </kml>`;
   }
 
-  // Build coordinates string from track
-  const coordinates = track
-    .map((point) => {
-      const [lng, lat, ele] = point;
+  // Build coordinates string using absolute altitude from telemetry
+  // (track uses relative height for map visualization)
+  const lats = telemetry.latitude ?? [];
+  const lngs = telemetry.longitude ?? [];
+  const alts = telemetry.altitude ?? [];
+  const heights = telemetry.height ?? [];
+  const vpsHeights = telemetry.vpsHeight ?? [];
+
+  const coordinates = lats
+    .map((lat, i) => {
+      const lng = lngs[i];
       if (lat == null || lng == null) return '';
-      return `${lng},${lat},${ele ?? 0}`;
+      // Skip 0,0 points
+      if (Math.abs(lat) < 0.000001 && Math.abs(lng) < 0.000001) return '';
+      // Use absolute altitude with fallbacks
+      const ele = alts[i] ?? heights[i] ?? vpsHeights[i] ?? 0;
+      return `${lng},${lat},${ele}`;
     })
     .filter(Boolean)
     .join(' ');

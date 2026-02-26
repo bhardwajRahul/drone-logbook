@@ -533,7 +533,7 @@
       "Telemetry table column order is enforced; if mismatched it rebuilds automatically.",
       "Bulk inserts use DuckDB Appender matching the exact column order above.",
       "Downsampling occurs when telemetry points exceed ~5000 (1s buckets).",
-      "Map track altitude uses COALESCE(altitude, height, vps_height) for absolute 3D paths.",
+      "Map track altitude uses COALESCE(height, vps_height, altitude) for relative 3D paths. KML export uses COALESCE(altitude, height, vps_height) for absolute mode.",
       "App data dir structure: flights.db + keychains/ + uploaded/ (when keep uploaded files enabled).",
       "Failed telemetry inserts trigger automatic flight metadata cleanup.",
       "flight_tags table stores per-flight tags with tag_type (auto/manual). Included in backup/restore. Migration adds tag_type column if missing.",
