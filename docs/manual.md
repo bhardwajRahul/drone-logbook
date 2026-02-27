@@ -440,6 +440,23 @@ The telemetry panel displays synchronized charts:
 | **Reset zoom** | Click the reset button to show full flight |
 | **Toggle drag zoom** | Click the zoom toggle to enable or disable drag zooming |
 
+### Customizing Charts
+
+You can customize which telemetry fields are displayed in each chart category:
+
+1. Click the **gear icon** in the top-right of the charts panel
+2. In the configuration modal, select or deselect fields for each chart category:
+   - **Height & Altitude**: Height, Altitude, VPS Height
+   - **Speed & Motion**: Speed, Velocity X/Y/Z
+   - **Battery**: Battery Percent, Voltage, Cell Voltages
+   - **Attitude**: Pitch, Roll, Yaw
+   - **Signal**: RC Signal, Uplink, Downlink, GPS Satellites
+   - **Distance**: Distance to Home
+3. Click **Save** to apply your changes
+
+> [!TIP]
+> Your chart configuration is automatically saved and will persist across sessions.
+
 #### Synchronized Views
 
 - All charts stay synchronized: zoom one, and they all zoom

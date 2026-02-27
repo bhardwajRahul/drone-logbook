@@ -49,6 +49,7 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
   const droneNameMap = useFlightStore((state) => state.droneNameMap);
   const sidebarFilteredFlightIds = useFlightStore((state) => state.sidebarFilteredFlightIds);
   const getDisplaySerial = useFlightStore((state) => state.getDisplaySerial);
+  const hideSerialNumbers = useFlightStore((state) => state.hideSerialNumbers);
   const overviewHighlightedFlightId = useFlightStore((state) => state.overviewHighlightedFlightId);
   const setHeatmapDateFilter = useFlightStore((state) => state.setHeatmapDateFilter);
   const maintenanceThresholds = useFlightStore((state) => state.maintenanceThresholds);
@@ -268,6 +269,7 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
           getDroneDisplayName={getDroneDisplayName}
           renameDrone={renameDrone}
           getDisplaySerial={getDisplaySerial}
+          hideSerialNumbers={hideSerialNumbers}
         />
       </div>
 
@@ -343,7 +345,7 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
             isLight={resolvedTheme === 'light'}
             getBatteryDisplayName={getBatteryDisplayName}
             renameBattery={renameBattery}
-            getDisplaySerial={getDisplaySerial}
+            hideSerialNumbers={hideSerialNumbers}
           />
         </div>
 
@@ -1033,12 +1035,14 @@ function DroneFlightTimeList({
   getDroneDisplayName,
   renameDrone,
   getDisplaySerial,
+  hideSerialNumbers,
 }: {
   drones: { droneModel: string; droneSerial: string | null; aircraftName: string | null; flightCount: number; totalDurationSecs: number; displayLabel: string }[];
   isLight: boolean;
   getDroneDisplayName: (serial: string, fallbackName: string) => string;
   renameDrone: (serial: string, displayName: string) => void;
   getDisplaySerial: (serial: string) => string;
+  hideSerialNumbers: boolean;
 }) {
   const [editingSerial, setEditingSerial] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
@@ -1148,11 +1152,14 @@ function DroneFlightTimeList({
                   </div>
                 </div>
               ) : (
-                <div className="grid items-center gap-1.5 text-xs" style={{ gridTemplateColumns: '140px 1fr 55px' }}>
+                <div
+                  className="grid items-center gap-1.5 text-xs"
+                  style={{ gridTemplateColumns: '140px 1fr 55px' }}
+                  title={!hideSerialNumbers && drone.droneSerial ? (displayName !== drone.droneSerial ? `${displayName} (${drone.droneSerial})` : drone.droneSerial) : undefined}
+                >
                   <span
                     className={`text-gray-300 font-medium truncate flex items-center justify-end gap-1 ${drone.droneSerial ? 'group cursor-pointer' : ''}`}
                     onDoubleClick={() => drone.droneSerial && handleStartRename(drone.droneSerial, fallbackName)}
-                    title={drone.droneSerial ? `${displayName}${hasDuplicate ? ` (${getDisplaySerial(drone.droneSerial)})` : ''} — double-click to rename` : displayName}
                   >
                     <span className="truncate">
                       {displayName}
@@ -1282,14 +1289,14 @@ function BatteryHealthList({
   isLight,
   getBatteryDisplayName,
   renameBattery,
-  getDisplaySerial,
+  hideSerialNumbers,
 }: {
   batteries: { batterySerial: string; flightCount: number; totalDurationSecs: number }[];
   points: BatteryHealthPoint[];
   isLight: boolean;
   getBatteryDisplayName: (serial: string) => string;
   renameBattery: (serial: string, displayName: string) => void;
-  getDisplaySerial: (serial: string) => string;
+  hideSerialNumbers: boolean;
 }) {
   const [editingSerial, setEditingSerial] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
@@ -1546,11 +1553,14 @@ function BatteryHealthList({
                   </div>
                 </div>
               ) : (
-                <div className="grid items-center gap-1.5 text-xs" style={{ gridTemplateColumns: '160px 1fr 32px 150px' }}>
+                <div
+                  className="grid items-center gap-1.5 text-xs"
+                  style={{ gridTemplateColumns: '160px 1fr 32px 150px' }}
+                  title={!hideSerialNumbers ? (displayName !== battery.batterySerial ? `${displayName} (${battery.batterySerial})` : battery.batterySerial) : undefined}
+                >
                   <span
                     className="text-gray-300 font-medium truncate flex items-center justify-end gap-1 group cursor-pointer"
                     onDoubleClick={() => handleStartRename(battery.batterySerial)}
-                    title={`${displayName}${displayName !== battery.batterySerial && displayName !== '*****' ? ` (${getDisplaySerial(battery.batterySerial)})` : ''} — double-click to rename`}
                   >
                     <span className="truncate">{displayName}</span>
                     <button
