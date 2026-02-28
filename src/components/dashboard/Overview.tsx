@@ -72,6 +72,7 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
     const totalPhotos = filteredFlights.reduce((sum, f) => sum + (f.photoCount ?? 0), 0);
     const totalVideos = filteredFlights.reduce((sum, f) => sum + (f.videoCount ?? 0), 0);
     const maxAltitudeM = Math.max(0, ...filteredFlights.map((f) => f.maxAltitude ?? 0));
+    const maxSpeedMs = Math.max(0, ...filteredFlights.map((f) => f.maxSpeed ?? 0));
 
     // Battery usage (normalize serials for consistent aggregation)
     const batteryMap = new Map<string, { count: number; duration: number }>();
@@ -193,6 +194,7 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
       totalPhotos,
       totalVideos,
       maxAltitudeM,
+      maxSpeedMs,
       maxDistanceFromHomeM,
       batteriesUsed,
       dronesUsed,
@@ -244,16 +246,18 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
       </div>
 
       {/* Secondary Stats */}
-      <div className="grid grid-cols-5 gap-3">
-        <StatCard label="Max Altitude" value={formatAltitude(filteredStats.maxAltitudeM, unitSystem)} small />
+      <div className="grid grid-cols-6 gap-3">
+        <StatCard label="Max Altitude" value={formatAltitude(filteredStats.maxAltitudeM, unitSystem)} icon={<AltitudeIcon />} small />
+        <StatCard label="Max Speed Achieved" value={formatSpeed(filteredStats.maxSpeedMs, unitSystem)} icon={<LightningIcon />} small />
         <StatCard
           label="Max Distance from Home"
           value={formatDistance(filteredStats.maxDistanceFromHomeM, unitSystem)}
+          icon={<HomeDistanceIcon />}
           small
         />
-        <StatCard label="Avg Distance / Flight" value={formatDistance(avgDistancePerFlight, unitSystem)} small />
-        <StatCard label="Avg Duration / Flight" value={formatDuration(avgDurationPerFlight)} small />
-        <StatCard label="Avg Speed" value={formatSpeed(avgSpeed, unitSystem)} small />
+        <StatCard label="Avg Distance / Flight" value={formatDistance(avgDistancePerFlight, unitSystem)} icon={<RouteIcon />} small />
+        <StatCard label="Avg Duration / Flight" value={formatDuration(avgDurationPerFlight)} icon={<TimerIcon />} small />
+        <StatCard label="Avg Speed" value={formatSpeed(avgSpeed, unitSystem)} icon={<SpeedometerIcon />} small />
       </div>
 
       {/* Activity Heatmap + Drone Flight Time Row */}
@@ -2630,6 +2634,90 @@ function VideoIcon() {
         strokeLinejoin="round"
         strokeWidth={2}
         d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+      />
+    </svg>
+  );
+}
+
+function LightningIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M13 10V3L4 14h7v7l9-11h-7z"
+      />
+    </svg>
+  );
+}
+
+function AltitudeIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M3 21l6-6 4 4 8-8M17 7v4h4"
+      />
+    </svg>
+  );
+}
+
+function HomeDistanceIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+      />
+    </svg>
+  );
+}
+
+function RouteIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
+      />
+    </svg>
+  );
+}
+
+function TimerIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+      />
+    </svg>
+  );
+}
+
+function SpeedometerIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+      />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M12 12l3-3"
       />
     </svg>
   );
