@@ -55,6 +55,10 @@ export interface HtmlReportFieldConfig {
   // Media
   photoCount: boolean;
   videoCount: boolean;
+
+  // Tags
+  manualTags: boolean;
+  autoTags: boolean;
 }
 
 export const DEFAULT_FIELD_CONFIG: HtmlReportFieldConfig = {
@@ -87,6 +91,8 @@ export const DEFAULT_FIELD_CONFIG: HtmlReportFieldConfig = {
   weatherCondition: true,
   photoCount: true,
   videoCount: true,
+  manualTags: true,
+  autoTags: true,
 };
 
 export interface FieldGroup {
@@ -152,6 +158,13 @@ export const FIELD_GROUPS: FieldGroup[] = [
     fields: [
       { key: 'photoCount', label: 'Photos' },
       { key: 'videoCount', label: 'Videos' },
+    ],
+  },
+  {
+    name: 'Tags',
+    fields: [
+      { key: 'manualTags', label: 'Manual Tags' },
+      { key: 'autoTags', label: 'Auto Tags' },
     ],
   },
 ];
@@ -377,15 +390,25 @@ export interface ReportOptions {
   unitSystem: UnitSystem;
 }
 
-/** Build a data item { label, value } for a flight, only for enabled fields */
-function buildFlightItems(
+interface ComponentGroup {
+  group: string;
+  items: { label: string; value: string }[];
+}
+
+interface FlightColumn {
+  isStacked: boolean;
+  groups: ComponentGroup[];
+}
+
+/** Build data columns for a flight, supporting stacked sections for Tags/Media */
+function buildFlightColumns(
   fd: FlightReportData,
   fc: HtmlReportFieldConfig,
   unitSystem: UnitSystem,
-): { group: string; items: { label: string; value: string }[] }[] {
-  const groups: { group: string; items: { label: string; value: string }[] }[] = [];
+): FlightColumn[] {
+  const columns: FlightColumn[] = [];
 
-  // General Info
+  // 1. General Info Column
   const generalItems: { label: string; value: string }[] = [];
   if (fc.flightName) generalItems.push({ label: 'Flight Name', value: esc(fd.flight.displayName || fd.flight.fileName) });
   if (fc.flightDateTime) generalItems.push({ label: 'Date/Time', value: esc(fmtDateTimeFull(fd.flight.startTime)) });
@@ -398,9 +421,9 @@ function buildFlightItems(
     generalItems.push({ label: 'Takeoff Location', value: lat != null && lon != null ? `${Number(lat).toFixed(5)}, ${Number(lon).toFixed(5)}` : '—' });
   }
   if (fc.notes && fd.flight.notes) generalItems.push({ label: 'Notes', value: esc(fd.flight.notes) });
-  if (generalItems.length > 0) groups.push({ group: 'General Info', items: generalItems });
+  if (generalItems.length > 0) columns.push({ isStacked: false, groups: [{ group: 'General Info', items: generalItems }] });
 
-  // Equipment
+  // 2. Equipment Column
   const equipItems: { label: string; value: string }[] = [];
   if (fc.aircraftName) {
     const fallback = fd.flight.aircraftName || fd.flight.droneModel || '';
@@ -415,9 +438,9 @@ function buildFlightItems(
     const display = serial !== '—' && fd.getBatteryDisplayName ? fd.getBatteryDisplayName(serial) : serial;
     equipItems.push({ label: 'Battery SN', value: esc(display) });
   }
-  if (equipItems.length > 0) groups.push({ group: 'Equipment', items: equipItems });
+  if (equipItems.length > 0) columns.push({ isStacked: false, groups: [{ group: 'Equipment', items: equipItems }] });
 
-  // Performance (Flight Stats + Battery merged)
+  // 3. Performance Column (Flight Stats + Battery merged)
   const perfItems: { label: string; value: string }[] = [];
   if (fc.totalDistance) perfItems.push({ label: 'Distance', value: esc(fmtDistance(fd.flight.totalDistance, unitSystem)) });
   if (fc.maxAltitude) perfItems.push({ label: 'Max Alt.', value: esc(fmtAltitude(fd.flight.maxAltitude, unitSystem)) });
@@ -474,9 +497,9 @@ function buildFlightItems(
       perfItems.push({ label: 'Bat. Temp', value: '—' });
     }
   }
-  if (perfItems.length > 0) groups.push({ group: 'Performance', items: perfItems });
+  if (perfItems.length > 0) columns.push({ isStacked: false, groups: [{ group: 'Performance', items: perfItems }] });
 
-  // Weather
+  // 4. Weather Column
   const wxItems: { label: string; value: string }[] = [];
   if (fc.weatherCondition) wxItems.push({ label: 'Condition', value: esc(fd.weather?.conditionLabel ?? '—') });
   if (fc.temperature) wxItems.push({ label: 'Temperature', value: fd.weather ? esc(fmtTemp(fd.weather.temperature, unitSystem)) : '—' });
@@ -486,15 +509,49 @@ function buildFlightItems(
   if (fc.cloudCover) wxItems.push({ label: 'Clouds', value: fd.weather && fd.weather.cloudCover != null ? `${fd.weather.cloudCover}%` : '—' });
   if (fc.precipitation) wxItems.push({ label: 'Precipitation', value: fd.weather ? esc(fmtPrecip(fd.weather.precipitation, unitSystem)) : '—' });
   if (fc.pressure) wxItems.push({ label: 'Pressure', value: fd.weather ? esc(fmtPressure(fd.weather.pressure, unitSystem)) : '—' });
-  if (wxItems.length > 0 && wxItems.some((i) => i.value !== '—')) groups.push({ group: 'Weather', items: wxItems });
+  if (wxItems.length > 0 && wxItems.some((i) => i.value !== '—')) columns.push({ isStacked: false, groups: [{ group: 'Weather', items: wxItems }] });
 
-  // Media
+  // 5. Stacked Column (Tags over Media)
+  const stackedGroups: ComponentGroup[] = [];
+
+  // ... 5a. Tags (Top Half)
+  const tagItems: { label: string; value: string }[] = [];
+  if (fc.manualTags || fc.autoTags) {
+    const flightTags = fd.flight.tags || [];
+    let includedTags = flightTags;
+
+    // Filter tags based on selected checkboxes
+    if (fc.manualTags && !fc.autoTags) {
+      includedTags = flightTags.filter(t => t.tagType === 'manual');
+    } else if (!fc.manualTags && fc.autoTags) {
+      includedTags = flightTags.filter(t => t.tagType === 'auto');
+    }
+
+    if (includedTags.length > 0) {
+      // Build a comma separated string for the tags list
+      const tagString = includedTags.map(t => t.tag).join(', ');
+      tagItems.push({ label: 'Included Tags', value: esc(tagString) });
+    } else if (flightTags.length === 0) {
+      tagItems.push({ label: 'Included Tags', value: 'None' });
+    } else {
+      tagItems.push({ label: 'Included Tags', value: 'None matching selection' });
+    }
+
+    if (tagItems.length > 0) stackedGroups.push({ group: 'Tags', items: tagItems });
+  }
+
+  // ... 5b. Media (Bottom Half)
   const mediaItems: { label: string; value: string }[] = [];
   if (fc.photoCount) mediaItems.push({ label: 'Photos', value: fd.flight.photoCount != null && fd.flight.photoCount > 0 ? String(fd.flight.photoCount) : '—' });
   if (fc.videoCount) mediaItems.push({ label: 'Videos', value: fd.flight.videoCount != null && fd.flight.videoCount > 0 ? String(fd.flight.videoCount) : '—' });
-  if (mediaItems.length > 0) groups.push({ group: 'Media', items: mediaItems });
+  if (mediaItems.length > 0) stackedGroups.push({ group: 'Media', items: mediaItems });
 
-  return groups;
+  if (stackedGroups.length > 0) {
+    // If it contains more than one group (Tags AND Media), it is stacked
+    columns.push({ isStacked: stackedGroups.length > 1, groups: stackedGroups });
+  }
+
+  return columns;
 }
 
 // Calendar SVG icon (inline, no emoji)
@@ -679,8 +736,23 @@ export function buildHtmlReport(
     flex: 1 1 0;
     min-width: 0;
     border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
   }
   .field-group:last-child { border-right: none; }
+  .field-group.stacked {
+    /* Stacked groups still share the column width but have internal dividers */
+  }
+  .field-group-internal {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .field-group-divider {
+    height: 1px;
+    background-color: var(--border);
+    width: 100%;
+  }
   .field-group-label {
     background: var(--group-label-bg);
     padding: 2px 8px;
@@ -697,6 +769,7 @@ export function buildHtmlReport(
     flex-wrap: wrap;
     padding: 2px 4px;
     gap: 0;
+    flex: 1;
   }
   .field-item {
     padding: 1px 4px;
@@ -811,7 +884,7 @@ export function buildHtmlReport(
 
     for (const fd of day.flights) {
       globalFlightIndex++;
-      const flightGroups = buildFlightItems(fd, fc, unitSystem);
+      const flightColumns = buildFlightColumns(fd, fc, unitSystem);
       const headerLabel = fd.flight.displayName || fd.flight.fileName || `Flight ${globalFlightIndex}`;
 
       html += `  <div class="flight-card">
@@ -821,15 +894,29 @@ export function buildHtmlReport(
     </div>
     <div class="flight-groups">\n`;
 
-      for (const grp of flightGroups) {
-        html += `      <div class="field-group">
-        <div class="field-group-label">${esc(grp.group)}</div>
-        <div class="field-group-items">\n`;
-        for (const item of grp.items) {
-          html += `          <div class="field-item"><div class="fl">${item.label}</div><div class="fv">${item.value}</div></div>\n`;
+      for (const col of flightColumns) {
+        // A column wraps completely around either a single group, or stacked groups
+        html += `      <div class="field-group ${col.isStacked ? 'stacked' : ''}">\n`;
+
+        for (let i = 0; i < col.groups.length; i++) {
+          const grp = col.groups[i];
+          // If this is a stacked internal group (and not the first one), add a divider
+          if (col.isStacked && i > 0) {
+            html += `        <div class="field-group-divider"></div>\n`;
+          }
+
+          html += `        <div class="field-group-internal">
+          <div class="field-group-label">${esc(grp.group)}</div>
+          <div class="field-group-items">\n`;
+
+          for (const item of grp.items) {
+            html += `            <div class="field-item"><div class="fl">${item.label}</div><div class="fv">${item.value}</div></div>\n`;
+          }
+          html += `          </div>
+        </div>\n`;
         }
-        html += `        </div>
-      </div>\n`;
+
+        html += `      </div>\n`;
       }
 
       html += `    </div>
