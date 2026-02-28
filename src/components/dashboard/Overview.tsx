@@ -1205,6 +1205,20 @@ function DonutChart({
   data: { name: string; value: number }[];
   emptyMessage: string;
 }) {
+  const chartRef = useRef<HTMLDivElement>(null);
+  const [chartWidth, setChartWidth] = useState(0);
+
+  useEffect(() => {
+    if (!chartRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setChartWidth(entry.contentRect.width);
+      }
+    });
+    observer.observe(chartRef.current);
+    return () => observer.disconnect();
+  }, []);
+
   if (data.length === 0) {
     return <p className="text-sm text-gray-400 text-center py-8">{emptyMessage}</p>;
   }
@@ -1220,6 +1234,22 @@ function DonutChart({
     '#6366f1', // Indigo
   ];
 
+  // Fixed chart height
+  const chartHeight = 200;
+  // Pie chart uses a square area based on height (with some padding)
+  const pieSquareSize = chartHeight - 20; // 180px
+  const pieCenter = pieSquareSize / 2 + 10; // Center in the square area (100px)
+  // 15% larger than original (0.75 -> 0.8625, 0.5 -> 0.575)
+  const pieOuterRadius = (pieSquareSize / 2) * 0.8625; // ~77.6px
+  const pieInnerRadius = (pieSquareSize / 2) * 0.575; // ~51.75px
+  // Gap between pie chart and legend
+  const pieToLegendGap = 30;
+  // Legend width is remaining space minus gap and padding
+  const remainingSpace = chartWidth > 0 ? chartWidth - pieSquareSize - pieToLegendGap : 140;
+  const legendWidth = Math.max(60, remainingSpace - 12); // 12px right padding
+  // Position legend after pie + gap
+  const legendLeft = pieSquareSize + pieToLegendGap;
+
   const option = {
     tooltip: {
       trigger: 'item' as const,
@@ -1233,22 +1263,23 @@ function DonutChart({
     legend: {
       type: 'scroll' as const,
       orient: 'vertical' as const,
-      right: 0,
+      left: legendLeft,
       top: 'center',
-      width: '45%',
-      textStyle: { color: '#9ca3af', fontSize: 11, overflow: 'truncate' as const },
-      pageTextStyle: { color: '#9ca3af' },
-      formatter: (name: string) => {
-        // Truncate long legend names to prevent overlap
-        return name.length > 18 ? name.slice(0, 16) + '…' : name;
+      width: legendWidth,
+      textStyle: { 
+        color: '#9ca3af', 
+        fontSize: 11, 
+        overflow: 'truncate' as const,
+        width: legendWidth - 24, // Account for icon and padding
       },
+      pageTextStyle: { color: '#9ca3af' },
       tooltip: { show: true },
     },
     series: [
       {
         type: 'pie' as const,
-        radius: ['50%', '75%'],
-        center: ['28%', '50%'],
+        radius: [pieInnerRadius, pieOuterRadius],
+        center: [pieCenter, '50%'],
         avoidLabelOverlap: true,
         padAngle: 2,
         itemStyle: {
@@ -1277,7 +1308,11 @@ function DonutChart({
     ],
   };
 
-  return <ReactECharts option={option} style={{ height: 200 }} />;
+  return (
+    <div ref={chartRef}>
+      <ReactECharts option={option} style={{ height: chartHeight }} />
+    </div>
+  );
 }
 
 function BatteryHealthList({
