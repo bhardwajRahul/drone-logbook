@@ -2659,7 +2659,7 @@ function AltitudeIcon() {
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth={2}
-        d="M3 21l6-6 4 4 8-8M17 7v4h4"
+        d="M5 10l7-7 7 7M12 3v18"
       />
     </svg>
   );
@@ -2711,13 +2711,13 @@ function SpeedometerIcon() {
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth={2}
-        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+        d="M12 12l4-4"
       />
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth={2}
-        d="M12 12l3-3"
+        d="M3.34 17a10 10 0 1117.32 0"
       />
     </svg>
   );
