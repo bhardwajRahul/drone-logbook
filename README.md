@@ -84,6 +84,7 @@
 - [Project Structure](#project-structure)
 - [How to obtain your own DJI Developer API key](#how-to-obtain-your-own-dji-developer-api-key)
 - [Contribution Guidelines](#contribution-guidelines)
+- [Socials and Support](#socials-and-support)
 - [Love this project?](#love-this-project)
 - [License](#license)
 - [Acknowledgments](#acknowledgments)
@@ -409,6 +410,18 @@ For more details, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Looking to extend functionality without waiting for official features? Check out the **[Discussions](https://github.com/arpanghosh8453/open-dronelog/discussions)** channel with the `User-Script` tag, where community members share custom scripts, collaborate with developers, and find useful enhancements for custom workflow.
 
+
+## Socials and Support
+
+<p align="center">
+    <a href="https://discord.gg/YKgKTmSm7B">
+        <img src="https://img.shields.io/badge/Discord-Join%20Server-5865F2?style=for-the-badge&logo=discord" alt="Discord" height="48"/>
+    </a>
+    &nbsp;&nbsp;
+    <a href="https://www.reddit.com/r/opendronelog/">
+        <img src="https://img.shields.io/badge/Reddit-r%2Fopendronelog-FF4500?style=for-the-badge&logo=reddit" alt="Reddit" height="48"/>
+    </a>
+</p>
 
 ## Love this project?
 
