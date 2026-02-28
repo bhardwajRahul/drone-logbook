@@ -89,10 +89,10 @@ impl Database {
         // closes the app window, which prevents process locking issues.
         log::info!("Starting post-startup WAL checkpoint to clear large migration logs...");
         let checkpoint_start = std::time::Instant::now();
-        if let Err(e) = db.conn.lock().unwrap().execute_batch("CHECKPOINT;") {
-            log::warn!("Post-startup WAL checkpoint failed (non-fatal): {} (took {:.1}s)", e, checkpoint_start.elapsed().as_secs_f64());
+        if let Err(e) = db.conn.lock().unwrap().execute_batch("CHECKPOINT; VACUUM;") {
+            log::warn!("Post-startup WAL checkpoint & vacuum failed (non-fatal): {} (took {:.1}s)", e, checkpoint_start.elapsed().as_secs_f64());
         } else {
-            log::info!("Post-startup WAL checkpoint completed successfully in {:.1}s", checkpoint_start.elapsed().as_secs_f64());
+            log::info!("Post-startup WAL checkpoint & vacuum completed successfully in {:.1}s", checkpoint_start.elapsed().as_secs_f64());
         }
 
         Ok(db)
