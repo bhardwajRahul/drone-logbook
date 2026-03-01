@@ -214,34 +214,37 @@ function fmtDuration(seconds: number | null): string {
   return `${mins}m ${secs}s`;
 }
 
-function fmtDistance(meters: number | null, unitSystem: UnitSystem): string {
+function fmtDistance(meters: number | null, unitSystem: UnitSystem, locale?: string): string {
   if (meters === null || meters === undefined || meters === 0) return '—';
+  const fmt = (n: number, d: number) => new Intl.NumberFormat(locale, { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
   if (unitSystem === 'imperial') {
     const miles = meters / 1609.344;
-    return `${miles.toFixed(2)} mi`;
+    return `${fmt(miles, 2)} mi`;
   }
-  if (meters >= 1000) return `${(meters / 1000).toFixed(2)} km`;
-  return `${meters.toFixed(0)} m`;
+  if (meters >= 1000) return `${fmt(meters / 1000, 2)} km`;
+  return `${fmt(meters, 0)} m`;
 }
 
-function fmtSpeed(ms: number | null, unitSystem: UnitSystem): string {
+function fmtSpeed(ms: number | null, unitSystem: UnitSystem, locale?: string): string {
   if (ms === null || ms === undefined || ms === 0) return '—';
-  if (unitSystem === 'imperial') return `${(ms * 2.236936).toFixed(1)} mph`;
-  return `${(ms * 3.6).toFixed(1)} km/h`;
+  const fmt = (n: number, d: number) => new Intl.NumberFormat(locale, { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
+  if (unitSystem === 'imperial') return `${fmt(ms * 2.236936, 1)} mph`;
+  return `${fmt(ms * 3.6, 1)} km/h`;
 }
 
-function fmtAltitude(meters: number | null, unitSystem: UnitSystem): string {
+function fmtAltitude(meters: number | null, unitSystem: UnitSystem, locale?: string): string {
   if (meters === null || meters === undefined || meters === 0) return '—';
-  if (unitSystem === 'imperial') return `${(meters * 3.28084).toFixed(1)} ft`;
-  return `${meters.toFixed(1)} m`;
+  const fmt = (n: number, d: number) => new Intl.NumberFormat(locale, { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
+  if (unitSystem === 'imperial') return `${fmt(meters * 3.28084, 1)} ft`;
+  return `${fmt(meters, 1)} m`;
 }
 
 /** Format to "DD MMM YYYY, hh:mm:ss AM/PM TZ" */
-function fmtDateTimeFull(isoString: string | null): string {
+function fmtDateTimeFull(isoString: string | null, locale?: string): string {
   if (!isoString) return '—';
   try {
     const date = new Date(isoString);
-    return date.toLocaleString('en-US', {
+    return date.toLocaleString(locale, {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
@@ -257,11 +260,11 @@ function fmtDateTimeFull(isoString: string | null): string {
 }
 
 /** Format time only: "hh:mm:ss AM/PM TZ" */
-function fmtTimeFull(isoString: string | null): string {
+function fmtTimeFull(isoString: string | null, locale?: string): string {
   if (!isoString) return '—';
   try {
     const date = new Date(isoString);
-    return date.toLocaleString('en-US', {
+    return date.toLocaleString(locale, {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
@@ -274,11 +277,11 @@ function fmtTimeFull(isoString: string | null): string {
 }
 
 /** Format date for day header: "DD MMM YYYY" */
-function fmtDateHeader(isoString: string | null): string {
+function fmtDateHeader(isoString: string | null, locale?: string): string {
   if (!isoString) return '';
   try {
     const date = new Date(isoString);
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString(locale, {
       weekday: 'long',
       day: '2-digit',
       month: 'short',
@@ -294,9 +297,9 @@ function fmtDateShort(isoString: string | null): string {
   return new Date(isoString).toISOString().split('T')[0];
 }
 
-/** Get current timestamp formatted as "DD MMM YYYY, hh:mm:ss AM/PM TZ" */
-function fmtNow(): string {
-  return new Date().toLocaleString('en-US', {
+/** Get current timestamp formatted */
+function fmtNow(locale?: string): string {
+  return new Date().toLocaleString(locale, {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -308,10 +311,10 @@ function fmtNow(): string {
   });
 }
 
-function calculateLandingTime(takeoffTime: string | null, durationSecs: number | null): string {
+function calculateLandingTime(takeoffTime: string | null, durationSecs: number | null, locale?: string): string {
   if (!takeoffTime || !durationSecs) return '—';
   const landing = new Date(new Date(takeoffTime).getTime() + durationSecs * 1000);
-  return landing.toLocaleString('en-US', {
+  return landing.toLocaleString(locale, {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
@@ -351,23 +354,27 @@ function calculateMaxDistanceFromHome(telemetry: TelemetryData): number | null {
   return maxDistance;
 }
 
-function fmtWindSpeed(kmh: number, unitSystem: UnitSystem): string {
-  if (unitSystem === 'imperial') return `${(kmh * 0.621371).toFixed(1)} mph`;
-  return `${kmh.toFixed(1)} km/h`;
+function fmtWindSpeed(kmh: number, unitSystem: UnitSystem, locale?: string): string {
+  const fmt = (n: number, d: number) => new Intl.NumberFormat(locale, { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
+  if (unitSystem === 'imperial') return `${fmt(kmh * 0.621371, 1)} mph`;
+  return `${fmt(kmh, 1)} km/h`;
 }
 
-function fmtTemp(c: number, unitSystem: UnitSystem): string {
-  if (unitSystem === 'imperial') return `${(c * 9 / 5 + 32).toFixed(1)} °F`;
-  return `${c.toFixed(1)} °C`;
+function fmtTemp(c: number, unitSystem: UnitSystem, locale?: string): string {
+  const fmt = (n: number, d: number) => new Intl.NumberFormat(locale, { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
+  if (unitSystem === 'imperial') return `${fmt(c * 9 / 5 + 32, 1)} °F`;
+  return `${fmt(c, 1)} °C`;
 }
 
-function fmtPrecip(mm: number, unitSystem: UnitSystem): string {
-  if (unitSystem === 'imperial') return `${(mm * 0.03937).toFixed(2)} in`;
-  return `${mm.toFixed(1)} mm`;
+function fmtPrecip(mm: number, unitSystem: UnitSystem, locale?: string): string {
+  const fmt = (n: number, d: number) => new Intl.NumberFormat(locale, { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
+  if (unitSystem === 'imperial') return `${fmt(mm * 0.03937, 2)} in`;
+  return `${fmt(mm, 1)} mm`;
 }
 
-function fmtPressure(hPa: number, unitSystem: UnitSystem): string {
-  if (unitSystem === 'imperial') return `${(hPa * 0.02953).toFixed(2)} inHg`;
+function fmtPressure(hPa: number, unitSystem: UnitSystem, locale?: string): string {
+  const fmt = (n: number, d: number) => new Intl.NumberFormat(locale, { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
+  if (unitSystem === 'imperial') return `${fmt(hPa * 0.02953, 2)} inHg`;
   return `${hPa} hPa`;
 }
 
@@ -388,6 +395,7 @@ export interface ReportOptions {
   pilotName: string;
   fieldConfig: HtmlReportFieldConfig;
   unitSystem: UnitSystem;
+  locale?: string;
 }
 
 interface ComponentGroup {
@@ -405,15 +413,16 @@ function buildFlightColumns(
   fd: FlightReportData,
   fc: HtmlReportFieldConfig,
   unitSystem: UnitSystem,
+  locale?: string,
 ): FlightColumn[] {
   const columns: FlightColumn[] = [];
 
   // 1. General Info Column
   const generalItems: { label: string; value: string }[] = [];
   if (fc.flightName) generalItems.push({ label: 'Flight Name', value: esc(fd.flight.displayName || fd.flight.fileName) });
-  if (fc.flightDateTime) generalItems.push({ label: 'Date/Time', value: esc(fmtDateTimeFull(fd.flight.startTime)) });
-  if (fc.takeoffTime) generalItems.push({ label: 'Takeoff', value: esc(fmtTimeFull(fd.flight.startTime)) });
-  if (fc.landingTime) generalItems.push({ label: 'Landing', value: esc(calculateLandingTime(fd.flight.startTime, fd.flight.durationSecs)) });
+  if (fc.flightDateTime) generalItems.push({ label: 'Date/Time', value: esc(fmtDateTimeFull(fd.flight.startTime, locale)) });
+  if (fc.takeoffTime) generalItems.push({ label: 'Takeoff', value: esc(fmtTimeFull(fd.flight.startTime, locale)) });
+  if (fc.landingTime) generalItems.push({ label: 'Landing', value: esc(calculateLandingTime(fd.flight.startTime, fd.flight.durationSecs, locale)) });
   if (fc.duration) generalItems.push({ label: 'Duration', value: esc(fmtDuration(fd.flight.durationSecs)) });
   if (fc.takeoffCoordinates) {
     const lat = fd.flight.homeLat ?? fd.data.telemetry.latitude?.[0];
@@ -442,12 +451,12 @@ function buildFlightColumns(
 
   // 3. Performance Column (Flight Stats + Battery merged)
   const perfItems: { label: string; value: string }[] = [];
-  if (fc.totalDistance) perfItems.push({ label: 'Distance', value: esc(fmtDistance(fd.flight.totalDistance, unitSystem)) });
-  if (fc.maxAltitude) perfItems.push({ label: 'Max Alt.', value: esc(fmtAltitude(fd.flight.maxAltitude, unitSystem)) });
-  if (fc.maxSpeed) perfItems.push({ label: 'Max Speed', value: esc(fmtSpeed(fd.flight.maxSpeed, unitSystem)) });
+  if (fc.totalDistance) perfItems.push({ label: 'Distance', value: esc(fmtDistance(fd.flight.totalDistance, unitSystem, locale)) });
+  if (fc.maxAltitude) perfItems.push({ label: 'Max Alt.', value: esc(fmtAltitude(fd.flight.maxAltitude, unitSystem, locale)) });
+  if (fc.maxSpeed) perfItems.push({ label: 'Max Speed', value: esc(fmtSpeed(fd.flight.maxSpeed, unitSystem, locale)) });
   if (fc.maxDistanceFromHome) {
     const d = calculateMaxDistanceFromHome(fd.data.telemetry);
-    perfItems.push({ label: 'Max Dist. Home', value: esc(fmtDistance(d, unitSystem)) });
+    perfItems.push({ label: 'Max Dist. Home', value: esc(fmtDistance(d, unitSystem, locale)) });
   }
   if (fc.takeoffBattery) {
     const b = fd.data.telemetry.battery;
@@ -502,13 +511,13 @@ function buildFlightColumns(
   // 4. Weather Column
   const wxItems: { label: string; value: string }[] = [];
   if (fc.weatherCondition) wxItems.push({ label: 'Condition', value: esc(fd.weather?.conditionLabel ?? '—') });
-  if (fc.temperature) wxItems.push({ label: 'Temperature', value: fd.weather ? esc(fmtTemp(fd.weather.temperature, unitSystem)) : '—' });
-  if (fc.windSpeed) wxItems.push({ label: 'Wind', value: fd.weather ? esc(fmtWindSpeed(fd.weather.windSpeed, unitSystem)) : '—' });
-  if (fc.windGusts) wxItems.push({ label: 'Gusts', value: fd.weather ? esc(fmtWindSpeed(fd.weather.windGusts, unitSystem)) : '—' });
+  if (fc.temperature) wxItems.push({ label: 'Temperature', value: fd.weather ? esc(fmtTemp(fd.weather.temperature, unitSystem, locale)) : '—' });
+  if (fc.windSpeed) wxItems.push({ label: 'Wind', value: fd.weather ? esc(fmtWindSpeed(fd.weather.windSpeed, unitSystem, locale)) : '—' });
+  if (fc.windGusts) wxItems.push({ label: 'Gusts', value: fd.weather ? esc(fmtWindSpeed(fd.weather.windGusts, unitSystem, locale)) : '—' });
   if (fc.humidity) wxItems.push({ label: 'Humidity', value: fd.weather && fd.weather.humidity != null ? `${fd.weather.humidity}%` : '—' });
   if (fc.cloudCover) wxItems.push({ label: 'Clouds', value: fd.weather && fd.weather.cloudCover != null ? `${fd.weather.cloudCover}%` : '—' });
-  if (fc.precipitation) wxItems.push({ label: 'Precipitation', value: fd.weather ? esc(fmtPrecip(fd.weather.precipitation, unitSystem)) : '—' });
-  if (fc.pressure) wxItems.push({ label: 'Pressure', value: fd.weather ? esc(fmtPressure(fd.weather.pressure, unitSystem)) : '—' });
+  if (fc.precipitation) wxItems.push({ label: 'Precipitation', value: fd.weather ? esc(fmtPrecip(fd.weather.precipitation, unitSystem, locale)) : '—' });
+  if (fc.pressure) wxItems.push({ label: 'Pressure', value: fd.weather ? esc(fmtPressure(fd.weather.pressure, unitSystem, locale)) : '—' });
   if (wxItems.length > 0 && wxItems.some((i) => i.value !== '—')) columns.push({ isStacked: false, groups: [{ group: 'Weather', items: wxItems }] });
 
   // 5. Stacked Column (Tags over Media)
@@ -566,6 +575,7 @@ export function buildHtmlReport(
     pilotName,
     fieldConfig: fc,
     unitSystem,
+    locale,
   } = options;
 
   // Group flights by day
@@ -573,7 +583,7 @@ export function buildHtmlReport(
   const dayMap = new Map<string, DayGroup>();
   for (const fd of flightsData) {
     const dateKey = fmtDateShort(fd.flight.startTime) || 'Unknown';
-    const dateLabel = fmtDateHeader(fd.flight.startTime) || 'Unknown Date';
+    const dateLabel = fmtDateHeader(fd.flight.startTime, locale) || 'Unknown Date';
     if (!dayMap.has(dateKey)) dayMap.set(dateKey, { date: dateKey, dateLabel, flights: [] });
     dayMap.get(dateKey)!.flights.push(fd);
   }
@@ -582,7 +592,7 @@ export function buildHtmlReport(
   const totalFlights = flightsData.length;
   const totalDuration = flightsData.reduce((sum, fd) => sum + (fd.flight.durationSecs || 0), 0);
   const totalDistanceM = flightsData.reduce((sum, fd) => sum + (fd.flight.totalDistance || 0), 0);
-  const now = fmtNow();
+  const now = fmtNow(locale);
 
   let html = `<!DOCTYPE html>
 <html lang="en">
@@ -849,7 +859,7 @@ export function buildHtmlReport(
       <div><strong>Pilot:</strong> ${esc(pilotName)}</div>
       <div><strong>Reported Flights:</strong> ${totalFlights}</div>
       <div><strong>Total Air Time:</strong> ${esc(fmtDuration(totalDuration))}</div>
-      <div><strong>Total Distance:</strong> ${esc(fmtDistance(totalDistanceM, unitSystem))}</div>
+      <div><strong>Total Distance:</strong> ${esc(fmtDistance(totalDistanceM, unitSystem, locale))}</div>
       <div><strong>Generated:</strong> ${esc(now)}</div>
     </div>
   </div>
@@ -865,7 +875,7 @@ export function buildHtmlReport(
       <div class="label">Total Air Time</div>
     </div>
     <div class="summary-card">
-      <div class="value">${esc(fmtDistance(totalDistanceM, unitSystem))}</div>
+      <div class="value">${esc(fmtDistance(totalDistanceM, unitSystem, locale))}</div>
       <div class="label">Total Distance</div>
     </div>
     <div class="summary-card">
@@ -884,7 +894,7 @@ export function buildHtmlReport(
 
     for (const fd of day.flights) {
       globalFlightIndex++;
-      const flightColumns = buildFlightColumns(fd, fc, unitSystem);
+      const flightColumns = buildFlightColumns(fd, fc, unitSystem, locale);
       const headerLabel = fd.flight.displayName || fd.flight.fileName || `Flight ${globalFlightIndex}`;
 
       html += `  <div class="flight-card">
@@ -926,11 +936,11 @@ export function buildHtmlReport(
     // Day subtotal
     const dayDuration = day.flights.reduce((s, fd) => s + (fd.flight.durationSecs || 0), 0);
     const dayDistance = day.flights.reduce((s, fd) => s + (fd.flight.totalDistance || 0), 0);
-    html += `  <div class="subtotal">Subtotal: ${day.flights.length} flight${day.flights.length !== 1 ? 's' : ''} · ${esc(fmtDuration(dayDuration))} · ${esc(fmtDistance(dayDistance, unitSystem))}</div>\n`;
+    html += `  <div class="subtotal">Subtotal: ${day.flights.length} flight${day.flights.length !== 1 ? 's' : ''} · ${esc(fmtDuration(dayDuration))} · ${esc(fmtDistance(dayDistance, unitSystem, locale))}</div>\n`;
   }
 
   // Grand total
-  html += `  <div class="grand-total">Grand Total: ${totalFlights} flights · ${esc(fmtDuration(totalDuration))} · ${esc(fmtDistance(totalDistanceM, unitSystem))}</div>\n`;
+  html += `  <div class="grand-total">Grand Total: ${totalFlights} flights · ${esc(fmtDuration(totalDuration))} · ${esc(fmtDistance(totalDistanceM, unitSystem, locale))}</div>\n`;
 
   // Footer
   html += `

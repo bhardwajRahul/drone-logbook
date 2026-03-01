@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { formatDuration, formatDistance, formatAltitude, formatSpeed, type UnitSystem } from '@/lib/utils';
 import { isWebMode } from '@/lib/api';
 import type { Flight } from '@/types';
+import { useFlightStore } from '@/stores/flightStore';
 import logoIcon from '@/assets/icon.png';
 
 // Card dimensions (1080x1080 for social media)
@@ -124,6 +125,7 @@ async function saveBlobDesktop(filename: string, blob: Blob): Promise<boolean> {
 }
 
 export function FlyCardGenerator({ flight, unitSystem, onClose }: FlyCardGeneratorProps) {
+  const locale = useFlightStore((state) => state.locale);
   const cardRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -213,9 +215,9 @@ export function FlyCardGenerator({ flight, unitSystem, onClose }: FlyCardGenerat
 
   // Format stats for display
   const durationValue = formatDuration(flight.durationSecs);
-  const distanceFull = formatDistance(flight.totalDistance, unitSystem);
-  const maxHeightFull = formatAltitude(flight.maxAltitude, unitSystem);
-  const maxSpeedFull = formatSpeed(flight.maxSpeed, unitSystem);
+  const distanceFull = formatDistance(flight.totalDistance, unitSystem, locale);
+  const maxHeightFull = formatAltitude(flight.maxAltitude, unitSystem, locale);
+  const maxSpeedFull = formatSpeed(flight.maxSpeed, unitSystem, locale);
   
   // Aircraft name from flight data or fallback
   const aircraftName = flight.aircraftName || flight.droneModel || 'Unknown Aircraft';

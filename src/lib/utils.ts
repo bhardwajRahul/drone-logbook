@@ -4,6 +4,14 @@
 
 export type UnitSystem = 'metric' | 'imperial';
 
+/** Locale-aware number formatter helper */
+export function fmtNum(value: number, decimals: number, locale?: string): string {
+  return new Intl.NumberFormat(locale, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(value);
+}
+
 /** Format duration from seconds to human readable string */
 export function formatDuration(seconds: number | null): string {
   if (seconds === null || seconds === undefined) return '--:--';
@@ -21,55 +29,58 @@ export function formatDuration(seconds: number | null): string {
 /** Format distance in meters to human readable string */
 export function formatDistance(
   meters: number | null,
-  unitSystem: UnitSystem = 'metric'
+  unitSystem: UnitSystem = 'metric',
+  locale?: string
 ): string {
   if (meters === null || meters === undefined) return '--';
 
   if (unitSystem === 'imperial') {
     const miles = meters / 1609.344;
-    return `${miles.toFixed(2)} mi`;
+    return `${fmtNum(miles, 2, locale)} mi`;
   }
   
   if (meters >= 1000) {
-    return `${(meters / 1000).toFixed(2)} km`;
+    return `${fmtNum(meters / 1000, 2, locale)} km`;
   }
-  return `${meters.toFixed(0)} m`;
+  return `${fmtNum(meters, 0, locale)} m`;
 }
 
 /** Format speed from m/s to km/h or mph */
 export function formatSpeed(
   ms: number | null,
-  unitSystem: UnitSystem = 'metric'
+  unitSystem: UnitSystem = 'metric',
+  locale?: string
 ): string {
   if (ms === null || ms === undefined) return '--';
   if (unitSystem === 'imperial') {
     const mph = ms * 2.236936;
-    return `${mph.toFixed(1)} mph`;
+    return `${fmtNum(mph, 1, locale)} mph`;
   }
   const kmh = ms * 3.6;
-  return `${kmh.toFixed(1)} km/h`;
+  return `${fmtNum(kmh, 1, locale)} km/h`;
 }
 
 /** Format altitude in meters */
 export function formatAltitude(
   meters: number | null,
-  unitSystem: UnitSystem = 'metric'
+  unitSystem: UnitSystem = 'metric',
+  locale?: string
 ): string {
   if (meters === null || meters === undefined) return '--';
   if (unitSystem === 'imperial') {
     const feet = meters * 3.28084;
-    return `${feet.toFixed(1)} ft`;
+    return `${fmtNum(feet, 1, locale)} ft`;
   }
-  return `${meters.toFixed(1)} m`;
+  return `${fmtNum(meters, 1, locale)} m`;
 }
 
 /** Format date string to locale date/time */
-export function formatDateTime(dateStr: string | null): string {
+export function formatDateTime(dateStr: string | null, locale?: string): string {
   if (!dateStr) return 'Unknown date';
   
   try {
     const date = new Date(dateStr);
-    return date.toLocaleString(undefined, {
+    return date.toLocaleString(locale, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -82,10 +93,10 @@ export function formatDateTime(dateStr: string | null): string {
 }
 
 /** Format file size in bytes to human readable */
-export function formatFileSize(bytes: number): string {
+export function formatFileSize(bytes: number, locale?: string): string {
   if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  if (bytes < 1024 * 1024) return `${fmtNum(bytes / 1024, 1, locale)} KB`;
+  return `${fmtNum(bytes / (1024 * 1024), 2, locale)} MB`;
 }
 
 /** Calculate bounds for a GPS track */

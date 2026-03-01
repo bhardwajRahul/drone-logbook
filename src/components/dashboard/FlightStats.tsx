@@ -24,7 +24,7 @@ interface FlightStatsProps {
 
 export function FlightStats({ data }: FlightStatsProps) {
   const { flight, telemetry } = data;
-  const { unitSystem, getBatteryDisplayName, addTag, removeTag, allTags, getDisplaySerial } = useFlightStore();
+  const { unitSystem, locale, getBatteryDisplayName, addTag, removeTag, allTags, getDisplaySerial } = useFlightStore();
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isWeatherOpen, setIsWeatherOpen] = useState(false);
@@ -178,7 +178,7 @@ export function FlightStats({ data }: FlightStatsProps) {
             </p>
           )}
           <div className="text-sm text-gray-400 flex flex-wrap items-center gap-2 mt-2">
-            {formatDateTime(flight.startTime)}
+            {formatDateTime(flight.startTime, locale)}
             {flight.aircraftName && (
               <span className="px-2 py-0.5 rounded-full text-xs border border-drone-primary/40 text-drone-primary bg-drone-primary/10">
                 Device: {flight.aircraftName}
@@ -273,7 +273,7 @@ export function FlightStats({ data }: FlightStatsProps) {
 
         <div className="text-right">
           <p className="text-xs text-gray-500">
-            {flight.pointCount?.toLocaleString() || 0} data points
+            {flight.pointCount?.toLocaleString(locale) || 0} data points
           </p>
         </div>
       </div>
@@ -287,17 +287,17 @@ export function FlightStats({ data }: FlightStatsProps) {
         />
         <StatCard
           label="Distance"
-          value={formatDistance(flight.totalDistance, unitSystem)}
+          value={formatDistance(flight.totalDistance, unitSystem, locale)}
           icon={<DistanceIcon />}
         />
         <StatCard
           label="Max Height"
-          value={formatAltitude(flight.maxAltitude, unitSystem)}
+          value={formatAltitude(flight.maxAltitude, unitSystem, locale)}
           icon={<AltitudeIcon />}
         />
         <StatCard
           label="Max Speed"
-          value={formatSpeed(flight.maxSpeed, unitSystem)}
+          value={formatSpeed(flight.maxSpeed, unitSystem, locale)}
           icon={<SpeedIcon />}
         />
         <StatCard
@@ -308,12 +308,12 @@ export function FlightStats({ data }: FlightStatsProps) {
         />
         <StatCard
           label="Photos"
-          value={(flight.photoCount ?? 0).toLocaleString()}
+          value={(flight.photoCount ?? 0).toLocaleString(locale)}
           icon={<CameraIcon />}
         />
         <StatCard
           label="Videos"
-          value={(flight.videoCount ?? 0).toLocaleString()}
+          value={(flight.videoCount ?? 0).toLocaleString(locale)}
           icon={<VideoIcon />}
         />
         {/* Weather button */}

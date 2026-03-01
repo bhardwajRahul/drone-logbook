@@ -126,6 +126,7 @@ export function FlightList({
     updateFlightName,
     updateFlightNotes,
     unitSystem,
+    locale,
     themeMode,
     getBatteryDisplayName,
     getDroneDisplayName,
@@ -234,12 +235,12 @@ export function FlightList({
 
   const dateFormatter = useMemo(
     () =>
-      new Intl.DateTimeFormat(undefined, {
+      new Intl.DateTimeFormat(locale, {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
       }),
-    []
+    [locale]
   );
   const today = useMemo(() => {
     const date = new Date();
@@ -1121,6 +1122,7 @@ export function FlightList({
         pilotName: config.pilotName,
         fieldConfig: config.fieldConfig,
         unitSystem,
+        locale,
       });
 
       if (isWebMode()) {
@@ -2518,10 +2520,10 @@ export function FlightList({
                   }}
                   title={[
                     flight.displayName || flight.fileName,
-                    `Start: ${formatDateTime(flight.startTime)}`,
+                    `Start: ${formatDateTime(flight.startTime, locale)}`,
                     `Duration: ${formatDuration(flight.durationSecs)}`,
-                    `Distance: ${formatDistance(flight.totalDistance, unitSystem)}`,
-                    `Max Altitude: ${formatAltitude(flight.maxAltitude, unitSystem)}`,
+                    `Distance: ${formatDistance(flight.totalDistance, unitSystem, locale)}`,
+                    `Max Altitude: ${formatAltitude(flight.maxAltitude, unitSystem, locale)}`,
                     flight.notes ? `Notes: ${flight.notes}` : null
                   ].filter(Boolean).join('\n')}
                 >
@@ -2557,9 +2559,9 @@ export function FlightList({
             {/* Subtitle: date + duration */}
             {editingId !== flight.id && (
               <p className="text-xs text-gray-500 mt-0.5 truncate">
-                {formatDateTime(flight.startTime)}
+                {formatDateTime(flight.startTime, locale)}
                 {flight.durationSecs ? ` · ${formatDuration(flight.durationSecs)}` : ''}
-                {flight.totalDistance ? ` · ${formatDistance(flight.totalDistance, unitSystem)}` : ''}
+                {flight.totalDistance ? ` · ${formatDistance(flight.totalDistance, unitSystem, locale)}` : ''}
               </p>
             )}
 

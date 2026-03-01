@@ -41,6 +41,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const {
     unitSystem,
     setUnitSystem,
+    locale,
+    setLocale,
     themeMode,
     setThemeMode,
     loadFlights,
@@ -317,7 +319,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       />
 
       {/* Modal - use grid to handle overflow properly */}
-      <div className="relative bg-drone-secondary rounded-xl border border-gray-700 shadow-2xl w-full max-w-3xl max-h-full grid grid-rows-[auto_1fr]">
+      <div className="relative bg-drone-secondary rounded-xl border border-gray-700 shadow-2xl w-full max-w-[845px] max-h-full grid grid-rows-[auto_1fr]">
         {/* Blocking overlay while a long-running operation is in progress */}
         {isBusy && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/90 dark:bg-black/60 backdrop-blur-[2px] rounded-xl">
@@ -397,6 +399,32 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               />
             </div>
 
+            {/* Number & Date Format */}
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-medium text-gray-300 whitespace-nowrap w-[15%] shrink-0">
+                Format
+              </label>
+              <Select
+                value={locale}
+                onChange={(v) => setLocale(v)}
+                className="w-[85%]"
+                options={[
+                  { value: 'en-GB', label: 'English UK — 1,234.56 · 25/03/2026' },
+                  { value: 'en-US', label: 'English US — 1,234.56 · 03/25/2026' },
+                  { value: 'de-DE', label: 'Deutsch — 1.234,56 · 25.03.2026' },
+                  { value: 'fr-FR', label: 'Français — 1 234,56 · 25/03/2026' },
+                  { value: 'es-ES', label: 'Español — 1.234,56 · 25/3/2026' },
+                  { value: 'it-IT', label: 'Italiano — 1.234,56 · 25/03/2026' },
+                  { value: 'nl-NL', label: 'Nederlands — 1.234,56 · 25-03-2026' },
+                  { value: 'pl-PL', label: 'Polski — 1 234,56 · 25.03.2026' },
+                  { value: 'pt-BR', label: 'Português BR — 1.234,56 · 25/03/2026' },
+                  { value: 'ja-JP', label: '日本語 — 1,234.56 · 2026/03/25' },
+                  { value: 'zh-CN', label: '中文 — 1,234.56 · 2026/3/25' },
+                  { value: 'ko-KR', label: '한국어 — 1,234.56 · 2026. 3. 25.' },
+                ]}
+              />
+            </div>
+
             {/* Hide Serial Numbers */}
             <div>
               <button
@@ -426,37 +454,38 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             </div>
 
             {/* Smart Tags */}
-            <div>
-              <p className="text-sm font-medium text-gray-300 mb-2">Smart Tags</p>
-              <button
-                type="button"
-                onClick={() => setSmartTagsEnabled(!smartTagsEnabled)}
-                className="flex items-center justify-between gap-3 w-full text-[0.85rem] text-gray-300"
-                aria-pressed={smartTagsEnabled}
-              >
-                <span>Intelligent flight tags</span>
-                <span
-                  className={`relative inline-flex h-5 w-9 items-center rounded-full border transition-all ${
-                    smartTagsEnabled
-                      ? 'bg-drone-primary/90 border-drone-primary'
-                      : 'bg-drone-surface border-gray-600 toggle-track-off'
-                  }`}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-300">Smart Tags</p>
+                  <p className="text-xs text-gray-500">Auto-generate descriptive tags on import.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSmartTagsEnabled(!smartTagsEnabled)}
+                  className="flex-shrink-0"
+                  aria-pressed={smartTagsEnabled}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                      smartTagsEnabled ? 'translate-x-4' : 'translate-x-1'
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full border transition-all ${
+                      smartTagsEnabled
+                        ? 'bg-drone-primary/90 border-drone-primary'
+                        : 'bg-drone-surface border-gray-600 toggle-track-off'
                     }`}
-                  />
-                </span>
-              </button>
-              <p className="text-xs text-gray-500 mt-1">
-                Automatically generate descriptive tags when importing flights.
-              </p>
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                        smartTagsEnabled ? 'translate-x-4' : 'translate-x-1'
+                      }`}
+                    />
+                  </span>
+                </button>
+              </div>
 
               {/* Smart Tag Types Selector */}
               {smartTagsEnabled && (
-                <div className="mt-3">
-                  <p className="text-xs text-gray-400 mb-1.5">Tag types to apply:</p>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Tag types to apply:</p>
                   <div className="relative">
                     <button
                       type="button"
@@ -563,10 +592,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   setMessage({ type: 'success', text: msg });
                 }}
                 disabled={isBusy}
-                className="mt-3 w-full py-2 px-3 rounded-lg border border-teal-600 text-teal-400 hover:bg-teal-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                className="w-full py-1.5 px-3 rounded-lg border border-teal-600 text-teal-400 hover:bg-teal-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs"
               >
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span className="flex items-center justify-center gap-1.5">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                   Regenerate smart tags
@@ -575,7 +604,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
               {/* Remove Auto Tags */}
               {confirmRemoveAutoTags ? (
-                <div className="mt-3 rounded-lg border border-orange-600/60 bg-orange-500/10 p-3">
+                <div className="rounded-lg border border-orange-600/60 bg-orange-500/10 p-2.5">
                   <p className="text-xs text-orange-200">
                     Remove all auto-generated tags from all flights? Manual tags will be preserved.
                   </p>
@@ -607,10 +636,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   type="button"
                   onClick={() => setConfirmRemoveAutoTags(true)}
                   disabled={isBusy}
-                  className="mt-3 w-full py-2 px-3 rounded-lg border border-orange-600 text-orange-400 hover:bg-orange-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  className="w-full py-1.5 px-3 rounded-lg border border-orange-600 text-orange-400 hover:bg-orange-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs"
                 >
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span className="flex items-center justify-center gap-1.5">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
                     Remove auto tags

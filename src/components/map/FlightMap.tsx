@@ -337,7 +337,7 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, telemetry, th
     height: number; speed: number; distance: number; progress: number;
     lat: number; lng: number; battery: number | null;
   } | null>(null);
-  const { unitSystem, mapSyncEnabled, setMapReplayProgress } = useFlightStore();
+  const { unitSystem, locale, mapSyncEnabled, setMapReplayProgress } = useFlightStore();
   const mapRef = useRef<MapRef | null>(null);
   const deckRef = useRef<any>(null);
 
@@ -1548,15 +1548,15 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, telemetry, th
             )}
             <div className="flex justify-between gap-4">
               <span className="text-gray-400">Height</span>
-              <span className="font-medium text-white">{formatAltitude(hoverInfo.height, unitSystem)}</span>
+              <span className="font-medium text-white">{formatAltitude(hoverInfo.height, unitSystem, locale)}</span>
             </div>
             <div className="flex justify-between gap-4">
               <span className="text-gray-400">Speed</span>
-              <span className="font-medium text-white">{formatSpeed(hoverInfo.speed, unitSystem)}</span>
+              <span className="font-medium text-white">{formatSpeed(hoverInfo.speed, unitSystem, locale)}</span>
             </div>
             <div className="flex justify-between gap-4">
               <span className="text-gray-400">Dist. Home</span>
-              <span className="font-medium text-white">{formatDistance(hoverInfo.distance, unitSystem)}</span>
+              <span className="font-medium text-white">{formatDistance(hoverInfo.distance, unitSystem, locale)}</span>
             </div>
             {hoverInfo.battery != null && (
               <div className="flex justify-between gap-4">
@@ -1599,9 +1599,9 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, telemetry, th
 
             {/* Primary stats */}
             <div className="space-y-1">
-              <ReplayStatRow label="Height" value={formatAltitude(replayTelemetry.height, unitSystem)} />
-              <ReplayStatRow label="Speed" value={formatSpeed(replayTelemetry.speed, unitSystem)} />
-              <ReplayStatRow label="Dist. Home" value={formatDistance(replayTelemetry.distHome, unitSystem)} />
+              <ReplayStatRow label="Height" value={formatAltitude(replayTelemetry.height, unitSystem, locale)} />
+              <ReplayStatRow label="Speed" value={formatSpeed(replayTelemetry.speed, unitSystem, locale)} />
+              <ReplayStatRow label="Dist. Home" value={formatDistance(replayTelemetry.distHome, unitSystem, locale)} />
             </div>
 
             {/* Battery */}

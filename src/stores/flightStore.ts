@@ -57,6 +57,8 @@ interface FlightState {
   loadSmartTagsEnabled: () => Promise<void>;
   regenerateSmartTags: () => Promise<string>;
   removeAllAutoTags: () => Promise<string>;
+  locale: string;
+  setLocale: (locale: string) => void;
   setUnitSystem: (unitSystem: 'metric' | 'imperial') => void;
   setThemeMode: (themeMode: 'system' | 'dark' | 'light') => void;
   setDonationAcknowledged: (value: boolean) => void;
@@ -145,6 +147,10 @@ export const useFlightStore = create<FlightState>((set, get) => ({
   isRemovingAutoTags: false,
   regenerationProgress: null,
   error: null,
+  locale:
+    (typeof localStorage !== 'undefined' &&
+      localStorage.getItem('locale')) ||
+    'en-GB',
   unitSystem:
     (typeof localStorage !== 'undefined' &&
       (localStorage.getItem('unitSystem') as 'metric' | 'imperial')) ||
@@ -665,6 +671,13 @@ export const useFlightStore = create<FlightState>((set, get) => ({
       set({ isRemovingAutoTags: false, error: `Failed to remove auto tags: ${err}` });
       throw err;
     }
+  },
+
+  setLocale: (locale) => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('locale', locale);
+    }
+    set({ locale });
   },
 
   setUnitSystem: (unitSystem) => {

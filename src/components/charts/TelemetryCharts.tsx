@@ -595,14 +595,15 @@ export function TelemetryCharts({ data, unitSystem, startTime }: TelemetryCharts
   const chartsRef = useRef<ECharts[]>([]);
   const isSyncingRef = useRef(false);
   const themeMode = useFlightStore((state) => state.themeMode);
+  const locale = useFlightStore((state) => state.locale);
   const mapSyncEnabled = useFlightStore((state) => state.mapSyncEnabled);
   const setMapSyncEnabled = useFlightStore((state) => state.setMapSyncEnabled);
   const mapReplayProgress = useFlightStore((state) => state.mapReplayProgress);
   const resolvedTheme = useMemo(() => resolveThemeMode(themeMode), [themeMode]);
   const splitLineColor = resolvedTheme === 'light' ? '#e2e8f0' : '#2a2a4e';
   const tooltipFormatter = useMemo(
-    () => createTooltipFormatter(startTime ?? null, resolvedTheme),
-    [resolvedTheme, startTime]
+    () => createTooltipFormatter(startTime ?? null, resolvedTheme, locale),
+    [resolvedTheme, startTime, locale]
   );
   const tooltipColors = useMemo(
     () =>
@@ -2183,7 +2184,8 @@ type TooltipColors = {
 
 function createTooltipFormatter(
   startTime: string | null,
-  theme: 'light' | 'dark'
+  theme: 'light' | 'dark',
+  locale?: string
 ): TooltipFormatter {
   return (params) => {
     const items = Array.isArray(params) ? params : [params];
@@ -2192,7 +2194,7 @@ function createTooltipFormatter(
       typeof axisValue === 'number'
         ? axisValue
         : Number.parseFloat(String(axisValue));
-    const header = formatTooltipHeader(startTime, seconds, theme);
+    const header = formatTooltipHeader(startTime, seconds, theme, locale);
 
     const lines = items.map((item) => {
       const marker = typeof item.marker === 'string' ? item.marker : '';
@@ -2215,7 +2217,8 @@ function createTooltipFormatter(
 function formatTooltipHeader(
   startTime: string | null,
   seconds: number,
-  theme: 'light' | 'dark'
+  theme: 'light' | 'dark',
+  locale?: string
 ): string {
   const safeSeconds = Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
   const durationLabel = formatDurationLabel(safeSeconds);
@@ -2224,7 +2227,7 @@ function formatTooltipHeader(
   }
   const startDate = new Date(startTime);
   const timestamp = new Date(startDate.getTime() + safeSeconds * 1000);
-  const timeLabel = new Intl.DateTimeFormat(undefined, {
+  const timeLabel = new Intl.DateTimeFormat(locale, {
     hour: '2-digit',
     minute: '2-digit',
     hour12: true,

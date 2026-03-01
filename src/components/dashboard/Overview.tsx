@@ -41,6 +41,7 @@ interface OverviewProps {
 }
 
 export function Overview({ stats, flights, unitSystem, onSelectFlight }: OverviewProps) {
+  const locale = useFlightStore((state) => state.locale);
   const themeMode = useFlightStore((state) => state.themeMode);
   const getBatteryDisplayName = useFlightStore((state) => state.getBatteryDisplayName);
   const renameBattery = useFlightStore((state) => state.renameBattery);
@@ -238,26 +239,26 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
 
       {/* Primary Stats */}
       <div className="grid grid-cols-5 gap-3">
-        <StatCard label="Total Flights" value={filteredStats.totalFlights.toLocaleString()} icon={<FlightIcon />} />
-        <StatCard label="Total Distance" value={formatDistance(filteredStats.totalDistanceM, unitSystem)} icon={<DistanceIcon />} />
+        <StatCard label="Total Flights" value={filteredStats.totalFlights.toLocaleString(locale)} icon={<FlightIcon />} />
+        <StatCard label="Total Distance" value={formatDistance(filteredStats.totalDistanceM, unitSystem, locale)} icon={<DistanceIcon />} />
         <StatCard label="Total Time" value={formatDuration(filteredStats.totalDurationSecs)} icon={<ClockIcon />} />
-        <StatCard label="Total Photos" value={filteredStats.totalPhotos.toLocaleString()} icon={<CameraIcon />} />
-        <StatCard label="Total Videos" value={filteredStats.totalVideos.toLocaleString()} icon={<VideoIcon />} />
+        <StatCard label="Total Photos" value={filteredStats.totalPhotos.toLocaleString(locale)} icon={<CameraIcon />} />
+        <StatCard label="Total Videos" value={filteredStats.totalVideos.toLocaleString(locale)} icon={<VideoIcon />} />
       </div>
 
       {/* Secondary Stats */}
       <div className="grid grid-cols-6 gap-3">
-        <StatCard label="Max Altitude" value={formatAltitude(filteredStats.maxAltitudeM, unitSystem)} icon={<AltitudeIcon />} small />
-        <StatCard label="Max Speed Achieved" value={formatSpeed(filteredStats.maxSpeedMs, unitSystem)} icon={<LightningIcon />} small />
+        <StatCard label="Max Altitude" value={formatAltitude(filteredStats.maxAltitudeM, unitSystem, locale)} icon={<AltitudeIcon />} small />
+        <StatCard label="Max Speed Achieved" value={formatSpeed(filteredStats.maxSpeedMs, unitSystem, locale)} icon={<LightningIcon />} small />
         <StatCard
           label="Max Distance from Home"
-          value={formatDistance(filteredStats.maxDistanceFromHomeM, unitSystem)}
+          value={formatDistance(filteredStats.maxDistanceFromHomeM, unitSystem, locale)}
           icon={<HomeDistanceIcon />}
           small
         />
-        <StatCard label="Avg Distance / Flight" value={formatDistance(avgDistancePerFlight, unitSystem)} icon={<RouteIcon />} small />
+        <StatCard label="Avg Distance / Flight" value={formatDistance(avgDistancePerFlight, unitSystem, locale)} icon={<RouteIcon />} small />
         <StatCard label="Avg Duration / Flight" value={formatDuration(avgDurationPerFlight)} icon={<TimerIcon />} small />
-        <StatCard label="Avg Speed" value={formatSpeed(avgSpeed, unitSystem)} icon={<SpeedometerIcon />} small />
+        <StatCard label="Avg Speed" value={formatSpeed(avgSpeed, unitSystem, locale)} icon={<SpeedometerIcon />} small />
       </div>
 
       {/* Activity Heatmap + Drone Flight Time Row */}
@@ -381,7 +382,7 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-white truncate">{flight.displayName}</p>
-                    <p className="text-xs text-gray-400">{formatDateTime(flight.startTime)}</p>
+                    <p className="text-xs text-gray-400">{formatDateTime(flight.startTime, locale)}</p>
                   </div>
                   <div className="text-sm font-medium text-drone-accent">
                     {formatDuration(flight.durationSecs)}
@@ -415,10 +416,10 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-white truncate">{flight.displayName}</p>
-                      <p className="text-xs text-gray-400">{formatDateTime(flight.startTime)}</p>
+                      <p className="text-xs text-gray-400">{formatDateTime(flight.startTime, locale)}</p>
                     </div>
                     <div className="text-sm font-medium text-drone-accent">
-                      {formatDistance(flight.maxDistanceFromHomeM, unitSystem)}
+                      {formatDistance(flight.maxDistanceFromHomeM, unitSystem, locale)}
                     </div>
                   </div>
                 ))}
@@ -657,6 +658,7 @@ function ActivityHeatmapCard({
   isLight: boolean;
   onDateDoubleClick?: (date: Date) => void;
 }) {
+  const locale = useFlightStore((state) => state.locale);
   const today = new Date();
   const oneYearAgo = new Date(today);
   oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
@@ -686,7 +688,7 @@ function ActivityHeatmapCard({
 
   const formatDate = (d: Date | undefined) => {
     if (!d) return '—';
-    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    return d.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   // Filter flights by date range
@@ -819,6 +821,7 @@ function ActivityHeatmap({
   dateRange?: DateRange;
   onDateDoubleClick?: (date: Date) => void;
 }) {
+  const locale = useFlightStore((state) => state.locale);
   const maxWidth = 1170;
   const labelWidth = 28;
   const gapSize = 2;
@@ -879,7 +882,7 @@ function ActivityHeatmap({
         const month = firstValidDay.date.getMonth();
         if (month !== lastMonth) {
           months.push({
-            label: firstValidDay.date.toLocaleDateString(undefined, { month: 'short' }),
+            label: firstValidDay.date.toLocaleDateString(locale, { month: 'short' }),
             col: weekIdx,
           });
           lastMonth = month;
@@ -970,7 +973,7 @@ function ActivityHeatmap({
                     }}
                     title={
                       day.count >= 0
-                        ? `${day.date.toLocaleDateString()}: ${day.count} flight${day.count !== 1 ? 's' : ''} (double-click to filter)`
+                        ? `${day.date.toLocaleDateString(locale)}: ${day.count} flight${day.count !== 1 ? 's' : ''} (double-click to filter)`
                         : ''
                     }
                     onDoubleClick={() => {
@@ -1334,6 +1337,7 @@ function BatteryHealthList({
   renameBattery: (serial: string, displayName: string) => void;
   hideSerialNumbers: boolean;
 }) {
+  const locale = useFlightStore((state) => state.locale);
   const [editingSerial, setEditingSerial] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
   const [renameError, setRenameError] = useState<string | null>(null);
@@ -1474,7 +1478,7 @@ function BatteryHealthList({
       formatter: (params: Array<{ seriesName: string; value: [string, number] }>) => {
         if (!params?.length) return '';
         const dateLabel = params[0].value?.[0]
-          ? new Date(params[0].value[0]).toLocaleDateString()
+          ? new Date(params[0].value[0]).toLocaleDateString(locale)
           : 'Unknown date';
         const lines = params
           .map((item) => `${item.seriesName}: ${item.value[1]} %/min`)
@@ -1675,6 +1679,7 @@ function MaintenanceSection({
   setMaintenanceThreshold,
   performMaintenance,
 }: MaintenanceSectionProps) {
+  const locale = useFlightStore((state) => state.locale);
   const [selectedBatteries, setSelectedBatteries] = useState<string[]>([]);
   const [selectedAircrafts, setSelectedAircrafts] = useState<string[]>([]);
   const [isBatteryDropdownOpen, setIsBatteryDropdownOpen] = useState(false);
@@ -1722,7 +1727,7 @@ function MaintenanceSection({
 
   // Format date for display
   const formatDateDisplay = (date: Date): string => {
-    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    return date.toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' });
   };
 
   // Handle battery maintenance performed
@@ -1865,7 +1870,7 @@ function MaintenanceSection({
 
   const formatLastReset = (date: Date | null) => {
     if (!date) return 'Never';
-    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    return date.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   // Get all batteries for progress display, sorted by combined progress (flights % + airtime %)

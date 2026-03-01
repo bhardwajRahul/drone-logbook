@@ -8,6 +8,8 @@ import { createPortal } from 'react-dom';
 import { fetchFlightWeather } from '@/lib/weather';
 import type { WeatherData } from '@/lib/weather';
 import type { UnitSystem } from '@/lib/utils';
+import { fmtNum } from '@/lib/utils';
+import { useFlightStore } from '@/stores/flightStore';
 import weatherIcon from '@/assets/weather-icon.svg';
 
 interface WeatherModalProps {
@@ -110,14 +112,15 @@ export function WeatherModal({ isOpen, onClose, lat, lon, startTime, unitSystem 
 
           {weather && !loading && !error && (() => {
             const isImperial = unitSystem === 'imperial';
+            const locale = useFlightStore.getState().locale;
             const fmtTemp = (c: number) =>
-              isImperial ? `${((c * 9) / 5 + 32).toFixed(1)}\u00B0F` : `${c}\u00B0C`;
+              isImperial ? `${fmtNum((c * 9) / 5 + 32, 1, locale)}\u00B0F` : `${fmtNum(c, 1, locale)}\u00B0C`;
             const fmtSpeed = (kmh: number) =>
-              isImperial ? `${(kmh * 0.621371).toFixed(1)} mph` : `${kmh} km/h`;
+              isImperial ? `${fmtNum(kmh * 0.621371, 1, locale)} mph` : `${fmtNum(kmh, 1, locale)} km/h`;
             const fmtPrecip = (mm: number) =>
-              isImperial ? `${(mm * 0.03937).toFixed(2)} in` : `${mm} mm`;
+              isImperial ? `${fmtNum(mm * 0.03937, 2, locale)} in` : `${fmtNum(mm, 1, locale)} mm`;
             const fmtPressure = (hPa: number) =>
-              isImperial ? `${(hPa * 0.02953).toFixed(2)} inHg` : `${hPa} hPa`;
+              isImperial ? `${fmtNum(hPa * 0.02953, 2, locale)} inHg` : `${fmtNum(hPa, 0, locale)} hPa`;
 
             return (
             <>
