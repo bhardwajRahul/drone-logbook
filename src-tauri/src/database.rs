@@ -210,40 +210,41 @@ impl Database {
             -- ============================================================
             -- TELEMETRY TABLE: Time-series data for each flight
             -- Optimized for range queries on timestamp
+            -- Note: lat/lon use DOUBLE for precision, other metrics use FLOAT to save space
             -- ============================================================
             CREATE TABLE IF NOT EXISTS telemetry (
                 flight_id       BIGINT NOT NULL,
                 timestamp_ms    BIGINT NOT NULL,         -- Milliseconds since flight start
                 
-                -- Position
+                -- Position (DOUBLE for lat/lon precision, FLOAT for altitude)
                 latitude        DOUBLE,
                 longitude       DOUBLE,
-                altitude        DOUBLE,                  -- Relative altitude in meters
-                height          DOUBLE,                  -- Height above takeoff in meters
-                vps_height      DOUBLE,                  -- VPS height in meters
-                altitude_abs    DOUBLE,                  -- Absolute altitude (MSL)
+                altitude        FLOAT,                   -- Relative altitude in meters
+                height          FLOAT,                   -- Height above takeoff in meters
+                vps_height      FLOAT,                   -- VPS height in meters
+                altitude_abs    FLOAT,                   -- Absolute altitude (MSL)
                 
                 -- Velocity
-                speed           DOUBLE,                  -- Ground speed in m/s
-                velocity_x      DOUBLE,                  -- North velocity
-                velocity_y      DOUBLE,                  -- East velocity  
-                velocity_z      DOUBLE,                  -- Down velocity
+                speed           FLOAT,                   -- Ground speed in m/s
+                velocity_x      FLOAT,                   -- North velocity
+                velocity_y      FLOAT,                   -- East velocity  
+                velocity_z      FLOAT,                   -- Down velocity
                 
                 -- Orientation (Euler angles in degrees)
-                pitch           DOUBLE,
-                roll            DOUBLE,
-                yaw             DOUBLE,
+                pitch           FLOAT,
+                roll            FLOAT,
+                yaw             FLOAT,
                 
                 -- Gimbal
-                gimbal_pitch    DOUBLE,
-                gimbal_roll     DOUBLE,
-                gimbal_yaw      DOUBLE,
+                gimbal_pitch    FLOAT,
+                gimbal_roll     FLOAT,
+                gimbal_yaw      FLOAT,
                 
                 -- Power
                 battery_percent INTEGER,
-                battery_voltage DOUBLE,
-                battery_current DOUBLE,
-                battery_temp    DOUBLE,
+                battery_voltage FLOAT,
+                battery_current FLOAT,
+                battery_temp    FLOAT,
                 cell_voltages   VARCHAR,                 -- JSON array of individual cell voltages
                 
                 -- Flight status
@@ -257,10 +258,10 @@ impl Database {
                 rc_downlink     INTEGER,
 
                 -- RC stick inputs (normalized -100..+100)
-                rc_aileron      DOUBLE,
-                rc_elevator     DOUBLE,
-                rc_throttle     DOUBLE,
-                rc_rudder       DOUBLE,
+                rc_aileron      FLOAT,
+                rc_elevator     FLOAT,
+                rc_throttle     FLOAT,
+                rc_rudder       FLOAT,
 
                 -- Camera state
                 is_photo        BOOLEAN,
@@ -340,6 +341,10 @@ impl Database {
         Self::migrate_telemetry_table(&conn)?;
         Self::migrate_flight_tags_table(&conn)?;
 
+        // Run type optimization migration (DOUBLE -> FLOAT for non-critical metrics)
+        // Must run before column order check since it recreates the table
+        Self::migrate_telemetry_types(&conn)?;
+
         Self::ensure_telemetry_column_order(&conn)?;
 
         log::info!("Database schema initialized successfully");
@@ -409,14 +414,14 @@ impl Database {
         let columns = Self::get_table_columns(conn, "telemetry")?;
         
         let migrations: &[(&str, &str)] = &[
-            ("height", "ALTER TABLE telemetry ADD COLUMN height DOUBLE"),
-            ("vps_height", "ALTER TABLE telemetry ADD COLUMN vps_height DOUBLE"),
+            ("height", "ALTER TABLE telemetry ADD COLUMN height FLOAT"),
+            ("vps_height", "ALTER TABLE telemetry ADD COLUMN vps_height FLOAT"),
             ("rc_uplink", "ALTER TABLE telemetry ADD COLUMN rc_uplink INTEGER"),
             ("rc_downlink", "ALTER TABLE telemetry ADD COLUMN rc_downlink INTEGER"),
-            ("rc_aileron", "ALTER TABLE telemetry ADD COLUMN rc_aileron DOUBLE"),
-            ("rc_elevator", "ALTER TABLE telemetry ADD COLUMN rc_elevator DOUBLE"),
-            ("rc_throttle", "ALTER TABLE telemetry ADD COLUMN rc_throttle DOUBLE"),
-            ("rc_rudder", "ALTER TABLE telemetry ADD COLUMN rc_rudder DOUBLE"),
+            ("rc_aileron", "ALTER TABLE telemetry ADD COLUMN rc_aileron FLOAT"),
+            ("rc_elevator", "ALTER TABLE telemetry ADD COLUMN rc_elevator FLOAT"),
+            ("rc_throttle", "ALTER TABLE telemetry ADD COLUMN rc_throttle FLOAT"),
+            ("rc_rudder", "ALTER TABLE telemetry ADD COLUMN rc_rudder FLOAT"),
             ("is_photo", "ALTER TABLE telemetry ADD COLUMN is_photo BOOLEAN"),
             ("is_video", "ALTER TABLE telemetry ADD COLUMN is_video BOOLEAN"),
             ("cell_voltages", "ALTER TABLE telemetry ADD COLUMN cell_voltages VARCHAR"),
@@ -451,6 +456,193 @@ impl Database {
             "UPDATE flight_tags SET tag_type = 'auto' WHERE tag_type IS NULL;",
         )?;
         
+        Ok(())
+    }
+
+    /// Migrate telemetry table column types from DOUBLE to FLOAT for non-critical metrics.
+    /// This reduces storage by ~50% for numeric columns while preserving full precision
+    /// for latitude/longitude coordinates. Only runs once.
+    fn migrate_telemetry_types(conn: &Connection) -> Result<(), DatabaseError> {
+        const MIGRATION_KEY: &str = "telemetry_float_migrated";
+        
+        // Check if migration already completed using a marker in the settings table
+        let already_migrated: bool = conn
+            .query_row(
+                "SELECT value FROM settings WHERE key = ?",
+                params![MIGRATION_KEY],
+                |row| row.get::<_, String>(0),
+            )
+            .map(|v| v == "true")
+            .unwrap_or(false);
+        
+        if already_migrated {
+            log::debug!("Telemetry type migration already completed, skipping");
+            return Ok(());
+        }
+        
+        // Check if telemetry table exists and has data
+        let row_count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM telemetry", [], |row| row.get(0))
+            .unwrap_or(0);
+        
+        if row_count == 0 {
+            // Empty table or new install - just mark as done
+            log::debug!("Telemetry table empty, marking float migration as complete");
+            conn.execute(
+                "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+                params![MIGRATION_KEY, "true"],
+            )?;
+            return Ok(());
+        }
+        
+        // Check if any DOUBLE columns exist (need migration)
+        // Query column types from DuckDB's information schema
+        let needs_migration: bool = conn
+            .query_row(
+                r#"
+                SELECT COUNT(*) > 0 
+                FROM information_schema.columns 
+                WHERE table_name = 'telemetry' 
+                  AND column_name = 'altitude' 
+                  AND data_type = 'DOUBLE'
+                "#,
+                [],
+                |row| row.get(0),
+            )
+            .unwrap_or(false);
+        
+        if !needs_migration {
+            log::debug!("Telemetry columns already using FLOAT types");
+            conn.execute(
+                "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+                params![MIGRATION_KEY, "true"],
+            )?;
+            return Ok(());
+        }
+        
+        log::info!(
+            "Migrating telemetry table types: DOUBLE -> FLOAT for {} rows (this may take a moment)...",
+            row_count
+        );
+        let start = std::time::Instant::now();
+        
+        // Recreate table with optimized types:
+        // - DOUBLE preserved for latitude, longitude (need ~15 decimal precision for GPS)
+        // - FLOAT for everything else (7 decimal precision is plenty for altitude, speed, etc.)
+        conn.execute_batch(
+            r#"
+            BEGIN TRANSACTION;
+            
+            CREATE TABLE telemetry_optimized (
+                flight_id       BIGINT NOT NULL,
+                timestamp_ms    BIGINT NOT NULL,
+                latitude        DOUBLE,
+                longitude       DOUBLE,
+                altitude        FLOAT,
+                height          FLOAT,
+                vps_height      FLOAT,
+                altitude_abs    FLOAT,
+                speed           FLOAT,
+                velocity_x      FLOAT,
+                velocity_y      FLOAT,
+                velocity_z      FLOAT,
+                pitch           FLOAT,
+                roll            FLOAT,
+                yaw             FLOAT,
+                gimbal_pitch    FLOAT,
+                gimbal_roll     FLOAT,
+                gimbal_yaw      FLOAT,
+                battery_percent INTEGER,
+                battery_voltage FLOAT,
+                battery_current FLOAT,
+                battery_temp    FLOAT,
+                cell_voltages   VARCHAR,
+                flight_mode     VARCHAR,
+                gps_signal      INTEGER,
+                satellites      INTEGER,
+                rc_signal       INTEGER,
+                rc_uplink       INTEGER,
+                rc_downlink     INTEGER,
+                rc_aileron      FLOAT,
+                rc_elevator     FLOAT,
+                rc_throttle     FLOAT,
+                rc_rudder       FLOAT,
+                is_photo        BOOLEAN,
+                is_video        BOOLEAN,
+                PRIMARY KEY (flight_id, timestamp_ms)
+            );
+            
+            INSERT INTO telemetry_optimized 
+            SELECT 
+                flight_id,
+                timestamp_ms,
+                latitude,
+                longitude,
+                CAST(altitude AS FLOAT),
+                CAST(height AS FLOAT),
+                CAST(vps_height AS FLOAT),
+                CAST(altitude_abs AS FLOAT),
+                CAST(speed AS FLOAT),
+                CAST(velocity_x AS FLOAT),
+                CAST(velocity_y AS FLOAT),
+                CAST(velocity_z AS FLOAT),
+                CAST(pitch AS FLOAT),
+                CAST(roll AS FLOAT),
+                CAST(yaw AS FLOAT),
+                CAST(gimbal_pitch AS FLOAT),
+                CAST(gimbal_roll AS FLOAT),
+                CAST(gimbal_yaw AS FLOAT),
+                battery_percent,
+                CAST(battery_voltage AS FLOAT),
+                CAST(battery_current AS FLOAT),
+                CAST(battery_temp AS FLOAT),
+                cell_voltages,
+                flight_mode,
+                gps_signal,
+                satellites,
+                rc_signal,
+                rc_uplink,
+                rc_downlink,
+                CAST(rc_aileron AS FLOAT),
+                CAST(rc_elevator AS FLOAT),
+                CAST(rc_throttle AS FLOAT),
+                CAST(rc_rudder AS FLOAT),
+                is_photo,
+                is_video
+            FROM telemetry;
+            
+            DROP TABLE telemetry;
+            ALTER TABLE telemetry_optimized RENAME TO telemetry;
+            
+            CREATE INDEX IF NOT EXISTS idx_telemetry_flight_time 
+                ON telemetry(flight_id, timestamp_ms);
+            
+            COMMIT;
+            "#,
+        )?;
+        
+        log::info!(
+            "Telemetry type migration completed in {:.1}s for {} rows",
+            start.elapsed().as_secs_f64(),
+            row_count
+        );
+        
+        // Run VACUUM to reclaim space (must be outside transaction)
+        log::info!("Running VACUUM to reclaim disk space...");
+        let vacuum_start = std::time::Instant::now();
+        if let Err(e) = conn.execute_batch("VACUUM;") {
+            log::warn!("VACUUM failed (non-fatal): {}", e);
+        } else {
+            log::info!("VACUUM completed in {:.1}s", vacuum_start.elapsed().as_secs_f64());
+        }
+        
+        // Mark migration as complete
+        conn.execute(
+            "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+            params![MIGRATION_KEY, "true"],
+        )?;
+        
+        log::info!("Telemetry type migration marked as complete");
         Ok(())
     }
 
