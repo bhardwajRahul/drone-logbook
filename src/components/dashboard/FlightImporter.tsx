@@ -867,7 +867,7 @@ export function FlightImporter() {
           <div className="flex gap-2 justify-center">
             <button
               onClick={handleBrowse}
-              className="btn-primary text-sm py-1.5 px-3 force-white flex-1 max-w-[100px]"
+              className="btn-primary text-sm py-1.5 px-5 force-white"
               disabled={isImporting || isBatchProcessing || isSyncing}
             >
               {t('importer.browse')}
@@ -876,7 +876,7 @@ export function FlightImporter() {
             {(!isWebMode() || webSyncPath) && (
               <button
                 onClick={handleSync}
-                className="btn-primary text-sm py-1.5 px-3 force-white flex-1 max-w-[100px]"
+                className="btn-primary text-sm py-1.5 px-5 force-white"
                 disabled={isImporting || isBatchProcessing || isSyncing}
                 title={isWebMode() 
                   ? (webSyncPath ? `Sync from server: ${webSyncPath}` : 'Sync not configured on server')
@@ -896,8 +896,7 @@ export function FlightImporter() {
           <div className="flex justify-center mt-2">
             <button
               onClick={() => setIsManualEntryOpen(true)}
-              className="btn-primary text-sm py-1.5 px-3 force-white flex items-center justify-center gap-1"
-              style={{ width: 'calc(200px + 0.5rem)' }}
+              className="btn-primary text-sm py-1.5 px-5 force-white flex items-center justify-center gap-1"
               disabled={isImporting || isBatchProcessing || isSyncing}
               title="Add a flight manually without a log file"
             >
