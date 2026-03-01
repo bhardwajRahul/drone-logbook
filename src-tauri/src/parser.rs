@@ -18,8 +18,10 @@ use sha2::{Digest, Sha256};
 use thiserror::Error;
 use tokio::time::timeout;
 
-use dji_log_parser::frame::Frame;
+use dji_log_parser::frame::{records_to_frames, Frame};
 use dji_log_parser::layout::auxiliary::Department;
+use dji_log_parser::record::component_serial::ComponentType;
+use dji_log_parser::record::Record;
 use dji_log_parser::DJILog;
 
 use crate::api::DjiApi;
@@ -30,6 +32,41 @@ use crate::models::{FlightMessage, FlightMetadata, FlightStats, TelemetryPoint};
 
 /// Maximum time allowed for parsing a single log file (seconds)
 const PARSE_TIMEOUT_SECS: u64 = 40;
+
+/// Full-length serial numbers extracted from ComponentSerial records.
+/// The details header in DJI logs truncates serials to 16 bytes, but
+/// Enterprise drones (e.g. Mavic 3 Enterprise) have 20-character SNs.
+/// ComponentSerial records store the complete serial with a length prefix.
+#[derive(Debug, Default, Clone)]
+struct ComponentSerials {
+    aircraft: Option<String>,
+    battery: Option<String>,
+}
+
+/// Scan raw records for ComponentSerial entries and return full-length serials.
+fn extract_component_serials(records: &[Record]) -> ComponentSerials {
+    let mut result = ComponentSerials::default();
+    for record in records {
+        if let Record::ComponentSerial(ref cs) = record {
+            let sn = cs.serial.trim().to_uppercase();
+            if sn.is_empty() {
+                continue;
+            }
+            match cs.component_type {
+                ComponentType::Aircraft => {
+                    log::debug!("ComponentSerial: Aircraft SN = {} ({} chars)", sn, sn.len());
+                    result.aircraft = Some(sn);
+                }
+                ComponentType::Battery => {
+                    log::debug!("ComponentSerial: Battery SN = {} ({} chars)", sn, sn.len());
+                    result.battery = Some(sn);
+                }
+                _ => {}
+            }
+        }
+    }
+    result
+}
 
 #[derive(Error, Debug)]
 pub enum ParserError {
@@ -194,8 +231,28 @@ impl<'a> LogParser<'a> {
         );
 
         // Check if we need an encryption key for V13+ logs
-        let (frames, used_djifly_fallback) = self.get_frames(&parser).await?;
+        let (frames, used_djifly_fallback, component_serials) = self.get_frames(&parser).await?;
         log::info!("Extracted {} frames from log", frames.len());
+
+        // Log when ComponentSerial provides a longer serial than the header
+        if let Some(ref full_sn) = component_serials.aircraft {
+            if full_sn.len() > parser.details.aircraft_sn.trim().len() {
+                log::info!(
+                    "ComponentSerial override: aircraft_sn '{}' ({} chars) -> '{}' ({} chars)",
+                    parser.details.aircraft_sn.trim(), parser.details.aircraft_sn.trim().len(),
+                    full_sn, full_sn.len()
+                );
+            }
+        }
+        if let Some(ref full_sn) = component_serials.battery {
+            if full_sn.len() > parser.details.battery_sn.trim().len() {
+                log::info!(
+                    "ComponentSerial override: battery_sn '{}' ({} chars) -> '{}' ({} chars)",
+                    parser.details.battery_sn.trim(), parser.details.battery_sn.trim().len(),
+                    full_sn, full_sn.len()
+                );
+            }
+        }
 
         if frames.is_empty() {
             log::warn!("No frames extracted from log file — file may be empty or corrupt");
@@ -247,9 +304,11 @@ impl<'a> LogParser<'a> {
             display_name,
             file_hash: Some(file_hash),
             drone_model: self.extract_drone_model(&parser),
-            drone_serial: self.extract_serial(&parser),
+            drone_serial: component_serials.aircraft.clone()
+                .or_else(|| self.extract_serial(&parser)),
             aircraft_name: self.extract_aircraft_name(&parser),
-            battery_serial: self.extract_battery_serial(&parser),
+            battery_serial: component_serials.battery.clone()
+                .or_else(|| self.extract_battery_serial(&parser)),
             start_time: self.extract_start_time(&parser),
             end_time: self.extract_end_time(&parser),
             duration_secs: Some(
@@ -598,7 +657,7 @@ impl<'a> LogParser<'a> {
     /// to prevent panics from crashing the application.
     /// Returns (frames, used_djifly_fallback) where used_djifly_fallback indicates
     /// if the DJIFly department override was needed (third-party app like Dronelink).
-    async fn get_frames(&self, parser: &DJILog) -> Result<(Vec<Frame>, bool), ParserError> {
+    async fn get_frames(&self, parser: &DJILog) -> Result<(Vec<Frame>, bool, ComponentSerials), ParserError> {
         // Version 13+ requires keychains for decryption
         let (keychains, used_djifly_fallback) = if parser.version >= 13 {
             let api_key = self.api.get_api_key().ok_or(ParserError::EncryptionKeyRequired)?;
@@ -644,7 +703,14 @@ impl<'a> LogParser<'a> {
             tokio::task::spawn_blocking(move || {
                 let parser_ref = unsafe { &*(parser_ptr as *const DJILog) };
                 panic::catch_unwind(panic::AssertUnwindSafe(|| {
-                    parser_ref.frames(keychains)
+                    // Use records() instead of frames() so we can extract
+                    // full-length ComponentSerial data before converting to frames.
+                    // The details header truncates serials to 16 bytes, but Enterprise
+                    // drones have 20-char serials stored in ComponentSerial records.
+                    let records = parser_ref.records(keychains)?;
+                    let comp_serials = extract_component_serials(&records);
+                    let frames = records_to_frames(records, parser_ref.details.clone());
+                    Ok((frames, comp_serials))
                 }))
             }),
         )
@@ -663,8 +729,8 @@ impl<'a> LogParser<'a> {
             }
             Ok(Ok(Ok(frames_result))) => {
                 frames_result
-                    .map(|frames| (frames, used_djifly_fallback))
-                    .map_err(|e| ParserError::Parse(e.to_string()))
+                    .map(|(frames, comp_serials)| (frames, used_djifly_fallback, comp_serials))
+                    .map_err(|e: dji_log_parser::Error| ParserError::Parse(e.to_string()))
             }
         }
     }
