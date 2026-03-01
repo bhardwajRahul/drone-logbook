@@ -77,7 +77,7 @@ export function ManualEntryModal({ isOpen, onClose }: ManualEntryModalProps) {
   const datePickerRef = useRef<HTMLDivElement>(null);
 
   const { t } = useTranslation();
-  const { unitSystem, locale, loadFlights, loadOverview, loadAllTags, themeMode } = useFlightStore();
+  const { unitSystem, dateLocale, loadFlights, loadOverview, loadAllTags, themeMode } = useFlightStore();
   const isLight = resolveThemeMode(themeMode) === 'light';
 
   // Reset form when modal opens
@@ -246,7 +246,7 @@ export function ManualEntryModal({ isOpen, onClose }: ManualEntryModalProps) {
 
   const formatDateDisplay = (date: Date | undefined): string => {
     if (!date) return t('manual.selectDate');
-    return date.toLocaleDateString(locale, {
+    return date.toLocaleDateString(dateLocale, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

@@ -26,7 +26,7 @@ interface FlightStatsProps {
 export function FlightStats({ data }: FlightStatsProps) {
   const { t } = useTranslation();
   const { flight, telemetry } = data;
-  const { unitSystem, locale, getBatteryDisplayName, addTag, removeTag, allTags, getDisplaySerial } = useFlightStore();
+  const { unitSystem, locale, dateLocale, getBatteryDisplayName, addTag, removeTag, allTags, getDisplaySerial } = useFlightStore();
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isWeatherOpen, setIsWeatherOpen] = useState(false);
@@ -180,7 +180,7 @@ export function FlightStats({ data }: FlightStatsProps) {
             </p>
           )}
           <div className="text-sm text-gray-400 flex flex-wrap items-center gap-2 mt-2">
-            {formatDateTime(flight.startTime, locale)}
+            {formatDateTime(flight.startTime, dateLocale)}
             {flight.aircraftName && (
               <span className="px-2 py-0.5 rounded-full text-xs border border-drone-primary/40 text-drone-primary bg-drone-primary/10">
                 {t('flightStats.device')} {flight.aircraftName}

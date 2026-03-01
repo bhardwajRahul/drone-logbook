@@ -8,7 +8,6 @@ import * as api from '@/lib/api';
 import type { Flight, FlightDataResponse, ImportResult, OverviewStats } from '@/types';
 import { normalizeSerial } from '@/lib/utils';
 import i18n from '@/i18n';
-import { localeToLang } from '@/i18n';
 
 interface FlightState {
   // State
@@ -61,6 +60,10 @@ interface FlightState {
   removeAllAutoTags: () => Promise<string>;
   locale: string;
   setLocale: (locale: string) => void;
+  dateLocale: string;
+  setDateLocale: (dateLocale: string) => void;
+  appLanguage: string;
+  setAppLanguage: (lang: string) => void;
   setUnitSystem: (unitSystem: 'metric' | 'imperial') => void;
   setThemeMode: (themeMode: 'system' | 'dark' | 'light') => void;
   setDonationAcknowledged: (value: boolean) => void;
@@ -153,6 +156,14 @@ export const useFlightStore = create<FlightState>((set, get) => ({
     (typeof localStorage !== 'undefined' &&
       localStorage.getItem('locale')) ||
     'en-GB',
+  dateLocale:
+    (typeof localStorage !== 'undefined' &&
+      localStorage.getItem('dateLocale')) ||
+    'en-GB',
+  appLanguage:
+    (typeof localStorage !== 'undefined' &&
+      localStorage.getItem('appLanguage')) ||
+    'en',
   unitSystem:
     (typeof localStorage !== 'undefined' &&
       (localStorage.getItem('unitSystem') as 'metric' | 'imperial')) ||
@@ -679,9 +690,22 @@ export const useFlightStore = create<FlightState>((set, get) => ({
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('locale', locale);
     }
-    const lang = localeToLang[locale] || 'en';
-    i18n.changeLanguage(lang);
     set({ locale });
+  },
+
+  setDateLocale: (dateLocale) => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('dateLocale', dateLocale);
+    }
+    set({ dateLocale });
+  },
+
+  setAppLanguage: (lang) => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('appLanguage', lang);
+    }
+    i18n.changeLanguage(lang);
+    set({ appLanguage: lang });
   },
 
   setUnitSystem: (unitSystem) => {

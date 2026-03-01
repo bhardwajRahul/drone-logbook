@@ -45,6 +45,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     setUnitSystem,
     locale,
     setLocale,
+    dateLocale,
+    setDateLocale,
+    appLanguage,
+    setAppLanguage,
     themeMode,
     setThemeMode,
     loadFlights,
@@ -368,63 +372,97 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           <div className="flex gap-0">
           {/* Left Column: Preferences & API Key */}
           <div className="flex-1 space-y-4 pr-5">
-            {/* Units */}
-            <div className="flex items-center gap-3">
-              <label className="text-sm font-medium text-gray-300 whitespace-nowrap w-[15%] shrink-0">
-                {t('settings.units')}
-              </label>
-              <Select
-                value={unitSystem}
-                onChange={(v) => setUnitSystem(v as 'metric' | 'imperial')}
-                className="w-[85%]"
-                options={[
-                  { value: 'metric', label: t('settings.metric') },
-                  { value: 'imperial', label: t('settings.imperial') },
-                ]}
-              />
+            {/* Units + Theme side by side */}
+            <div className="flex gap-3">
+              <div className="flex flex-col gap-1 flex-1">
+                <label className="text-xs font-medium text-gray-400">
+                  {t('settings.units')}
+                </label>
+                <Select
+                  value={unitSystem}
+                  onChange={(v) => setUnitSystem(v as 'metric' | 'imperial')}
+                  options={[
+                    { value: 'metric', label: t('settings.metric') },
+                    { value: 'imperial', label: t('settings.imperial') },
+                  ]}
+                />
+              </div>
+              <div className="flex flex-col gap-1 flex-1">
+                <label className="text-xs font-medium text-gray-400">
+                  {t('settings.theme')}
+                </label>
+                <Select
+                  value={themeMode}
+                  onChange={(v) => setThemeMode(v as 'system' | 'dark' | 'light')}
+                  options={[
+                    { value: 'system', label: t('settings.system') },
+                    { value: 'dark', label: t('settings.dark') },
+                    { value: 'light', label: t('settings.light') },
+                  ]}
+                />
+              </div>
             </div>
 
-            {/* Theme */}
-            <div className="flex items-center gap-3">
-              <label className="text-sm font-medium text-gray-300 whitespace-nowrap w-[15%] shrink-0">
-                {t('settings.theme')}
-              </label>
-              <Select
-                value={themeMode}
-                onChange={(v) => setThemeMode(v as 'system' | 'dark' | 'light')}
-                className="w-[85%]"
-                options={[
-                  { value: 'system', label: t('settings.system') },
-                  { value: 'dark', label: t('settings.dark') },
-                  { value: 'light', label: t('settings.light') },
-                ]}
-              />
-            </div>
-
-            {/* Number & Date Format */}
-            <div className="flex items-center gap-3">
-              <label className="text-sm font-medium text-gray-300 whitespace-nowrap w-[15%] shrink-0">
-                {t('settings.format')}
-              </label>
-              <Select
-                value={locale}
-                onChange={(v) => setLocale(v)}
-                className="w-[85%]"
-                options={[
-                  { value: 'en-GB', label: 'English UK — 1,234.56 · 25/03/2026' },
-                  { value: 'en-US', label: 'English US — 1,234.56 · 03/25/2026' },
-                  { value: 'de-DE', label: 'Deutsch — 1.234,56 · 25.03.2026' },
-                  { value: 'fr-FR', label: 'Français — 1 234,56 · 25/03/2026' },
-                  { value: 'es-ES', label: 'Español — 1.234,56 · 25/3/2026' },
-                  { value: 'it-IT', label: 'Italiano — 1.234,56 · 25/03/2026' },
-                  { value: 'nl-NL', label: 'Nederlands — 1.234,56 · 25-03-2026' },
-                  { value: 'pl-PL', label: 'Polski — 1 234,56 · 25.03.2026' },
-                  { value: 'pt-BR', label: 'Português BR — 1.234,56 · 25/03/2026' },
-                  { value: 'ja-JP', label: '日本語 — 1,234.56 · 2026/03/25' },
-                  { value: 'zh-CN', label: '中文 — 1,234.56 · 2026/3/25' },
-                  { value: 'ko-KR', label: '한국어 — 1,234.56 · 2026. 3. 25.' },
-                ]}
-              />
+            {/* Language + Number & Date Format side by side */}
+            <div className="flex gap-3">
+              {/* App Language */}
+              <div className="flex flex-col gap-1 flex-1">
+                <label className="text-xs font-medium text-gray-400">
+                  {t('settings.language')}
+                </label>
+                <Select
+                  value={appLanguage}
+                  onChange={(v) => setAppLanguage(v)}
+                  listMaxHeight="max-h-72"
+                  options={[
+                    { value: 'en', label: 'English' },
+                    { value: 'de', label: 'Deutsch' },
+                    { value: 'fr', label: 'Français' },
+                    { value: 'es', label: 'Español' },
+                    { value: 'it', label: 'Italiano' },
+                    { value: 'nl', label: 'Nederlands' },
+                    { value: 'pl', label: 'Polski' },
+                    { value: 'pt', label: 'Português BR' },
+                    { value: 'ja', label: '日本語' },
+                    { value: 'zh', label: '中文' },
+                    { value: 'ko', label: '한국어' },
+                  ]}
+                />
+              </div>
+              {/* Number Format */}
+              <div className="flex flex-col gap-1 flex-1">
+                <label className="text-xs font-medium text-gray-400">
+                  {t('settings.numbers')}
+                </label>
+                <Select
+                  value={locale}
+                  onChange={(v) => setLocale(v)}
+                  options={[
+                    { value: 'en-GB', label: '1,234.56' },
+                    { value: 'de-DE', label: '1.234,56' },
+                    { value: 'fr-FR', label: '1 234,56' },
+                  ]}
+                />
+              </div>
+              {/* Date Format */}
+              <div className="flex flex-col gap-1 flex-1">
+                <label className="text-xs font-medium text-gray-400">
+                  {t('settings.dates')}
+                </label>
+                <Select
+                  value={dateLocale}
+                  onChange={(v) => setDateLocale(v)}
+                  options={[
+                    { value: 'en-GB', label: 'DD/MM/YYYY' },
+                    { value: 'en-US', label: 'MM/DD/YYYY' },
+                    { value: 'de-DE', label: 'DD.MM.YYYY' },
+                    { value: 'nl-NL', label: 'DD-MM-YYYY' },
+                    { value: 'ja-JP', label: 'YYYY/MM/DD' },
+                    { value: 'zh-CN', label: 'YYYY/M/D' },
+                    { value: 'ko-KR', label: 'YYYY. M. D.' },
+                  ]}
+                />
+              </div>
             </div>
 
             {/* Hide Serial Numbers */}
@@ -487,7 +525,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               {/* Smart Tag Types Selector */}
               {smartTagsEnabled && (
                 <div>
-                  <p className="text-xs text-gray-400 mb-1">{t('settings.tagTypesToApply')}</p>
                   <div className="relative">
                     <button
                       type="button"

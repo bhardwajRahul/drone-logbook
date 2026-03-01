@@ -15,9 +15,10 @@ interface SelectProps {
   onChange: (value: string) => void;
   options: SelectOption[];
   className?: string;
+  listMaxHeight?: string;
 }
 
-export function Select({ value, onChange, options, className = '' }: SelectProps) {
+export function Select({ value, onChange, options, className = '', listMaxHeight = 'max-h-48' }: SelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -159,7 +160,7 @@ export function Select({ value, onChange, options, className = '' }: SelectProps
             />
           </div>
           {/* Options list */}
-          <div ref={listRef} className="max-h-48 overflow-auto">
+          <div ref={listRef} className={`${listMaxHeight} overflow-auto`}>
             {filteredOptions.length === 0 ? (
               <div className="px-3 py-2 text-xs text-gray-500 italic">No matches</div>
             ) : (

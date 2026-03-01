@@ -44,6 +44,7 @@ interface OverviewProps {
 export function Overview({ stats, flights, unitSystem, onSelectFlight }: OverviewProps) {
   const { t } = useTranslation();
   const locale = useFlightStore((state) => state.locale);
+  const dateLocale = useFlightStore((state) => state.dateLocale);
   const themeMode = useFlightStore((state) => state.themeMode);
   const getBatteryDisplayName = useFlightStore((state) => state.getBatteryDisplayName);
   const renameBattery = useFlightStore((state) => state.renameBattery);
@@ -384,7 +385,7 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-white truncate">{flight.displayName}</p>
-                    <p className="text-xs text-gray-400">{formatDateTime(flight.startTime, locale)}</p>
+                    <p className="text-xs text-gray-400">{formatDateTime(flight.startTime, dateLocale)}</p>
                   </div>
                   <div className="text-sm font-medium text-drone-accent">
                     {formatDuration(flight.durationSecs)}
@@ -418,7 +419,7 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-white truncate">{flight.displayName}</p>
-                      <p className="text-xs text-gray-400">{formatDateTime(flight.startTime, locale)}</p>
+                      <p className="text-xs text-gray-400">{formatDateTime(flight.startTime, dateLocale)}</p>
                     </div>
                     <div className="text-sm font-medium text-drone-accent">
                       {formatDistance(flight.maxDistanceFromHomeM, unitSystem, locale)}
@@ -660,7 +661,7 @@ function ActivityHeatmapCard({
   onDateDoubleClick?: (date: Date) => void;
 }) {
   const { t } = useTranslation();
-  const locale = useFlightStore((state) => state.locale);
+  const dateLocale = useFlightStore((state) => state.dateLocale);
   const today = new Date();
   const oneYearAgo = new Date(today);
   oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
@@ -690,7 +691,7 @@ function ActivityHeatmapCard({
 
   const formatDate = (d: Date | undefined) => {
     if (!d) return '—';
-    return d.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' });
+    return d.toLocaleDateString(dateLocale, { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   // Filter flights by date range
@@ -824,7 +825,7 @@ function ActivityHeatmap({
   onDateDoubleClick?: (date: Date) => void;
 }) {
   const { t } = useTranslation();
-  const locale = useFlightStore((state) => state.locale);
+  const dateLocale = useFlightStore((state) => state.dateLocale);
   const maxWidth = 1170;
   const labelWidth = 28;
   const gapSize = 2;
@@ -885,7 +886,7 @@ function ActivityHeatmap({
         const month = firstValidDay.date.getMonth();
         if (month !== lastMonth) {
           months.push({
-            label: firstValidDay.date.toLocaleDateString(locale, { month: 'short' }),
+            label: firstValidDay.date.toLocaleDateString(dateLocale, { month: 'short' }),
             col: weekIdx,
           });
           lastMonth = month;
@@ -976,7 +977,7 @@ function ActivityHeatmap({
                     }}
                     title={
                       day.count >= 0
-                        ? t('overview.heatmapTooltip', { date: day.date.toLocaleDateString(locale), count: day.count })
+                        ? t('overview.heatmapTooltip', { date: day.date.toLocaleDateString(dateLocale), count: day.count })
                         : ''
                     }
                     onDoubleClick={() => {
@@ -1343,7 +1344,7 @@ function BatteryHealthList({
   hideSerialNumbers: boolean;
 }) {
   const { t } = useTranslation();
-  const locale = useFlightStore((state) => state.locale);
+  const dateLocale = useFlightStore((state) => state.dateLocale);
   const [editingSerial, setEditingSerial] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
   const [renameError, setRenameError] = useState<string | null>(null);
@@ -1484,7 +1485,7 @@ function BatteryHealthList({
       formatter: (params: Array<{ seriesName: string; value: [string, number] }>) => {
         if (!params?.length) return '';
         const dateLabel = params[0].value?.[0]
-          ? new Date(params[0].value[0]).toLocaleDateString(locale)
+          ? new Date(params[0].value[0]).toLocaleDateString(dateLocale)
           : t('overview.unknownDate');
         const lines = params
           .map((item) => `${item.seriesName}: ${item.value[1]} ${t('overview.percentPerMin')}`)
@@ -1686,7 +1687,7 @@ function MaintenanceSection({
   performMaintenance,
 }: MaintenanceSectionProps) {
   const { t } = useTranslation();
-  const locale = useFlightStore((state) => state.locale);
+  const dateLocale = useFlightStore((state) => state.dateLocale);
   const [selectedBatteries, setSelectedBatteries] = useState<string[]>([]);
   const [selectedAircrafts, setSelectedAircrafts] = useState<string[]>([]);
   const [isBatteryDropdownOpen, setIsBatteryDropdownOpen] = useState(false);
@@ -1734,7 +1735,7 @@ function MaintenanceSection({
 
   // Format date for display
   const formatDateDisplay = (date: Date): string => {
-    return date.toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' });
+    return date.toLocaleDateString(dateLocale, { year: 'numeric', month: 'short', day: 'numeric' });
   };
 
   // Handle battery maintenance performed
@@ -1877,7 +1878,7 @@ function MaintenanceSection({
 
   const formatLastReset = (date: Date | null) => {
     if (!date) return t('overview.never');
-    return date.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' });
+    return date.toLocaleDateString(dateLocale, { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   // Get all batteries for progress display, sorted by combined progress (flights % + airtime %)

@@ -32,8 +32,8 @@ export const localeToLang: Record<string, string> = {
   'ko-KR': 'ko',
 };
 
-const savedLocale = localStorage.getItem('locale') || 'en-GB';
-const initialLang = localeToLang[savedLocale] || 'en';
+const savedLang = localStorage.getItem('appLanguage') || 'en';
+const initialLang = savedLang;
 
 i18n.use(initReactI18next).init({
   resources: {

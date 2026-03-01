@@ -128,6 +128,7 @@ export function FlightList({
     updateFlightNotes,
     unitSystem,
     locale,
+    dateLocale,
     themeMode,
     getBatteryDisplayName,
     getDroneDisplayName,
@@ -238,12 +239,12 @@ export function FlightList({
 
   const dateFormatter = useMemo(
     () =>
-      new Intl.DateTimeFormat(locale, {
+      new Intl.DateTimeFormat(dateLocale, {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
       }),
-    [locale]
+    [dateLocale]
   );
   const today = useMemo(() => {
     const date = new Date();
@@ -1126,6 +1127,7 @@ export function FlightList({
         fieldConfig: config.fieldConfig,
         unitSystem,
         locale,
+        dateLocale,
       });
 
       if (isWebMode()) {
@@ -2523,7 +2525,7 @@ export function FlightList({
                   }}
                   title={[
                     flight.displayName || flight.fileName,
-                    `Start: ${formatDateTime(flight.startTime, locale)}`,
+                    `Start: ${formatDateTime(flight.startTime, dateLocale)}`,
                     `Duration: ${formatDuration(flight.durationSecs)}`,
                     `Distance: ${formatDistance(flight.totalDistance, unitSystem, locale)}`,
                     `Max Altitude: ${formatAltitude(flight.maxAltitude, unitSystem, locale)}`,
@@ -2562,7 +2564,7 @@ export function FlightList({
             {/* Subtitle: date + duration */}
             {editingId !== flight.id && (
               <p className="text-xs text-gray-500 mt-0.5 truncate">
-                {formatDateTime(flight.startTime, locale)}
+                {formatDateTime(flight.startTime, dateLocale)}
                 {flight.durationSecs ? ` · ${formatDuration(flight.durationSecs)}` : ''}
                 {flight.totalDistance ? ` · ${formatDistance(flight.totalDistance, unitSystem, locale)}` : ''}
               </p>

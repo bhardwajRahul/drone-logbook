@@ -396,6 +396,7 @@ export interface ReportOptions {
   fieldConfig: HtmlReportFieldConfig;
   unitSystem: UnitSystem;
   locale?: string;
+  dateLocale?: string;
 }
 
 interface ComponentGroup {
@@ -414,15 +415,17 @@ function buildFlightColumns(
   fc: HtmlReportFieldConfig,
   unitSystem: UnitSystem,
   locale?: string,
+  dateLocale?: string,
 ): FlightColumn[] {
   const columns: FlightColumn[] = [];
+  const dl = dateLocale || locale;
 
   // 1. General Info Column
   const generalItems: { label: string; value: string }[] = [];
   if (fc.flightName) generalItems.push({ label: 'Flight Name', value: esc(fd.flight.displayName || fd.flight.fileName) });
-  if (fc.flightDateTime) generalItems.push({ label: 'Date/Time', value: esc(fmtDateTimeFull(fd.flight.startTime, locale)) });
-  if (fc.takeoffTime) generalItems.push({ label: 'Takeoff', value: esc(fmtTimeFull(fd.flight.startTime, locale)) });
-  if (fc.landingTime) generalItems.push({ label: 'Landing', value: esc(calculateLandingTime(fd.flight.startTime, fd.flight.durationSecs, locale)) });
+  if (fc.flightDateTime) generalItems.push({ label: 'Date/Time', value: esc(fmtDateTimeFull(fd.flight.startTime, dl)) });
+  if (fc.takeoffTime) generalItems.push({ label: 'Takeoff', value: esc(fmtTimeFull(fd.flight.startTime, dl)) });
+  if (fc.landingTime) generalItems.push({ label: 'Landing', value: esc(calculateLandingTime(fd.flight.startTime, fd.flight.durationSecs, dl)) });
   if (fc.duration) generalItems.push({ label: 'Duration', value: esc(fmtDuration(fd.flight.durationSecs)) });
   if (fc.takeoffCoordinates) {
     const lat = fd.flight.homeLat ?? fd.data.telemetry.latitude?.[0];
@@ -576,14 +579,16 @@ export function buildHtmlReport(
     fieldConfig: fc,
     unitSystem,
     locale,
+    dateLocale,
   } = options;
+  const dl = dateLocale || locale;
 
   // Group flights by day
   type DayGroup = { date: string; dateLabel: string; flights: FlightReportData[] };
   const dayMap = new Map<string, DayGroup>();
   for (const fd of flightsData) {
     const dateKey = fmtDateShort(fd.flight.startTime) || 'Unknown';
-    const dateLabel = fmtDateHeader(fd.flight.startTime, locale) || 'Unknown Date';
+    const dateLabel = fmtDateHeader(fd.flight.startTime, dl) || 'Unknown Date';
     if (!dayMap.has(dateKey)) dayMap.set(dateKey, { date: dateKey, dateLabel, flights: [] });
     dayMap.get(dateKey)!.flights.push(fd);
   }
@@ -592,7 +597,7 @@ export function buildHtmlReport(
   const totalFlights = flightsData.length;
   const totalDuration = flightsData.reduce((sum, fd) => sum + (fd.flight.durationSecs || 0), 0);
   const totalDistanceM = flightsData.reduce((sum, fd) => sum + (fd.flight.totalDistance || 0), 0);
-  const now = fmtNow(locale);
+  const now = fmtNow(dl);
 
   let html = `<!DOCTYPE html>
 <html lang="en">
@@ -894,7 +899,7 @@ export function buildHtmlReport(
 
     for (const fd of day.flights) {
       globalFlightIndex++;
-      const flightColumns = buildFlightColumns(fd, fc, unitSystem, locale);
+      const flightColumns = buildFlightColumns(fd, fc, unitSystem, locale, dl);
       const headerLabel = fd.flight.displayName || fd.flight.fileName || `Flight ${globalFlightIndex}`;
 
       html += `  <div class="flight-card">
