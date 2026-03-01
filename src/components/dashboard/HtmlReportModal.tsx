@@ -7,6 +7,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import {
     FIELD_GROUPS,
@@ -28,6 +29,7 @@ interface HtmlReportModalProps {
 }
 
 export function HtmlReportModal({ isOpen, onClose, onGenerate, flightCount }: HtmlReportModalProps) {
+    const { t } = useTranslation();
     const [documentTitle, setDocumentTitle] = useState('Flight Regulation Report');
     const [pilotName, setPilotName] = useState('');
     const [fieldConfig, setFieldConfig] = useState<HtmlReportFieldConfig>(loadFieldConfig);
@@ -109,11 +111,11 @@ export function HtmlReportModal({ isOpen, onClose, onGenerate, flightCount }: Ht
     const handleGenerate = () => {
         setValidationError('');
         if (!documentTitle.trim()) {
-            setValidationError('Document title is required.');
+            setValidationError(t('report.titleRequired'));
             return;
         }
         if (!pilotName.trim()) {
-            setValidationError('Pilot name is required.');
+            setValidationError(t('report.pilotRequired'));
             return;
         }
         // Persist names
@@ -145,9 +147,9 @@ export function HtmlReportModal({ isOpen, onClose, onGenerate, flightCount }: Ht
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-3 border-b border-gray-700 flex-shrink-0">
                     <div>
-                        <h2 className="text-lg font-semibold text-white">HTML Report</h2>
+                        <h2 className="text-lg font-semibold text-white">{t('report.title')}</h2>
                         <p className="text-xs text-gray-400 mt-0.5">
-                            Configure and generate a printable flight report ({flightCount} flight{flightCount !== 1 ? 's' : ''})
+                            {t('report.description', { n: flightCount })}
                         </p>
                     </div>
                     <button
@@ -166,25 +168,25 @@ export function HtmlReportModal({ isOpen, onClose, onGenerate, flightCount }: Ht
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <label className="block text-xs font-medium text-gray-300 mb-1">
-                                Document Title <span className="text-red-400">*</span>
+                                {t('report.documentTitle')} <span className="text-red-400">*</span>
                             </label>
                             <input
                                 type="text"
                                 value={documentTitle}
                                 onChange={(e) => setDocumentTitle(e.target.value)}
-                                placeholder="e.g. Flight Regulation Report"
+                                placeholder={t('report.titlePlaceholder')}
                                 className="w-full px-3 py-2 text-sm rounded-lg border border-gray-600 bg-drone-dark text-white placeholder-gray-500 focus:border-drone-primary focus:ring-1 focus:ring-drone-primary focus:outline-none transition-colors"
                             />
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-gray-300 mb-1">
-                                Pilot Name <span className="text-red-400">*</span>
+                                {t('report.pilotName')} <span className="text-red-400">*</span>
                             </label>
                             <input
                                 type="text"
                                 value={pilotName}
                                 onChange={(e) => setPilotName(e.target.value)}
-                                placeholder="Enter pilot name"
+                                placeholder={t('report.pilotPlaceholder')}
                                 className="w-full px-3 py-2 text-sm rounded-lg border border-gray-600 bg-drone-dark text-white placeholder-gray-500 focus:border-drone-primary focus:ring-1 focus:ring-drone-primary focus:outline-none transition-colors"
                             />
                         </div>
@@ -199,13 +201,13 @@ export function HtmlReportModal({ isOpen, onClose, onGenerate, flightCount }: Ht
 
                     {/* Global controls */}
                     <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-gray-300 uppercase tracking-wide">Report Fields</span>
+                        <span className="text-xs font-semibold text-gray-300 uppercase tracking-wide">{t('report.reportFields')}</span>
                         <div className="flex items-center gap-3 text-xs">
-                            <button onClick={selectAllGroups} className="text-sky-400 hover:text-sky-300 font-medium transition-colors">All</button>
+                            <button onClick={selectAllGroups} className="text-sky-400 hover:text-sky-300 font-medium transition-colors">{t('report.all')}</button>
                             <span className="text-gray-600">/</span>
-                            <button onClick={selectNoneGroups} className="text-sky-400 hover:text-sky-300 font-medium transition-colors">None</button>
+                            <button onClick={selectNoneGroups} className="text-sky-400 hover:text-sky-300 font-medium transition-colors">{t('report.none')}</button>
                             <span className="text-gray-600">/</span>
-                            <button onClick={resetAll} className="text-sky-400 hover:text-sky-300 font-medium transition-colors">Reset</button>
+                            <button onClick={resetAll} className="text-sky-400 hover:text-sky-300 font-medium transition-colors">{t('report.reset')}</button>
                         </div>
                     </div>
                 </div>
@@ -222,9 +224,9 @@ export function HtmlReportModal({ isOpen, onClose, onGenerate, flightCount }: Ht
                                 <div className="flex items-center justify-between px-4 py-2 bg-drone-surface border-b border-gray-700/80">
                                     <span className="text-xs font-semibold text-gray-300">{group.name}</span>
                                     <div className="flex items-center gap-2 text-[10px]">
-                                        <button onClick={() => setGroupAll(group.name)} className="text-sky-400 hover:text-sky-300 font-medium transition-colors">All</button>
+                                        <button onClick={() => setGroupAll(group.name)} className="text-sky-400 hover:text-sky-300 font-medium transition-colors">{t('report.all')}</button>
                                         <span className="text-gray-600">/</span>
-                                        <button onClick={() => setGroupNone(group.name)} className="text-sky-400 hover:text-sky-300 font-medium transition-colors">None</button>
+                                        <button onClick={() => setGroupNone(group.name)} className="text-sky-400 hover:text-sky-300 font-medium transition-colors">{t('report.none')}</button>
                                     </div>
                                 </div>
 
@@ -265,7 +267,7 @@ export function HtmlReportModal({ isOpen, onClose, onGenerate, flightCount }: Ht
                         onClick={onClose}
                         className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-700/30 rounded-lg transition-colors"
                     >
-                        Cancel
+                        {t('report.cancel')}
                     </button>
                     <button
                         onClick={handleGenerate}
@@ -275,7 +277,7 @@ export function HtmlReportModal({ isOpen, onClose, onGenerate, flightCount }: Ht
                             : 'bg-gray-700/50 text-gray-500 cursor-not-allowed'
                             }`}
                     >
-                        Generate Report
+                        {t('report.generate')}
                     </button>
                 </div>
             </div>

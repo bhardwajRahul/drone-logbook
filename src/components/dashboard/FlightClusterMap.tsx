@@ -12,6 +12,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import type { Flight } from '@/types';
 import { formatDuration, formatDistance, formatAltitude, formatDateTime } from '@/lib/utils';
 import type { UnitSystem } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 import { useFlightStore } from '@/stores/flightStore';
 
 // ---------------------------------------------------------------------------
@@ -140,6 +141,7 @@ export function FlightClusterMap({
   highlightedFlightId,
 }: FlightClusterMapProps) {
   const locale = useFlightStore((state) => state.locale);
+  const { t } = useTranslation();
   const mapRef = useRef<MapRef | null>(null);
   const hasFittedRef = useRef(false);
   const [isSatellite, setIsSatellite] = useState(false);
@@ -478,13 +480,13 @@ export function FlightClusterMap({
     return (
       <div className={`card p-4 transition-all duration-300 ${mapAreaFilterEnabled ? 'ring-2 ring-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.15)]' : ''}`}>
         <h3 className="text-sm font-semibold mb-3">
-          <span className="text-white">Flight Locations</span>
+          <span className="text-white">{t('clusterMap.flightLocations')}</span>
           {mapAreaFilterEnabled && (
-            <span className="text-emerald-400 ml-1">— Global filter active</span>
+            <span className="text-emerald-400 ml-1">{t('clusterMap.globalFilterActive')}</span>
           )}
         </h3>
         <p className="text-sm text-gray-400 text-center py-10">
-          No flights with location data available.
+          {t('clusterMap.noFlightsWithLocation')}
         </p>
       </div>
     );
@@ -496,9 +498,9 @@ export function FlightClusterMap({
       style={{ height: 480, minHeight: 480, maxHeight: 850 }}
     >
       <h3 className="text-sm font-semibold mb-3">
-        <span className="text-white">Flight Locations</span>
+        <span className="text-white">{t('clusterMap.flightLocations')}</span>
         {mapAreaFilterEnabled && (
-          <span className="text-emerald-400 ml-1">— Global filter active</span>
+          <span className="text-emerald-400 ml-1">{t('clusterMap.globalFilterActive')}</span>
         )}
       </h3>
       <div 
@@ -532,7 +534,7 @@ export function FlightClusterMap({
           {/* Satellite toggle */}
           <div className="map-overlay absolute top-2 left-2 z-10 bg-drone-dark/80 border border-gray-700 rounded-xl px-3 py-2 shadow-lg">
             <ToggleRow
-              label="Satellite"
+              label={t('clusterMap.satellite')}
               checked={isSatellite}
               onChange={setIsSatellite}
             />
@@ -543,14 +545,14 @@ export function FlightClusterMap({
             type="button"
             onClick={handleResetZoom}
             className="absolute bottom-2 right-2 z-10 bg-drone-dark/80 border border-gray-700 rounded-lg px-2.5 py-1.5 shadow-lg text-xs text-gray-300 hover:text-white hover:bg-drone-dark transition-colors flex items-center gap-1.5"
-            title="Reset zoom to fit all flights"
+            title={t('clusterMap.resetZoomToFit')}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
               <polyline points="23 1 23 10 14 10" />
               <polyline points="1 23 1 14 10 14" />
             </svg>
-            Reset zoom
+            {t('clusterMap.resetZoom')}
           </button>
 
           <Source
@@ -645,22 +647,22 @@ export function FlightClusterMap({
                 <div className="popup-body px-3.5 py-2.5 space-y-1.5">
                   <PopupStatRow
                     icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>}
-                    label="Date"
+                    label={t('clusterMap.date')}
                     value={formatDateTime(popupInfo.flight.startTime, locale)}
                   />
                   <PopupStatRow
                     icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
-                    label="Duration"
+                    label={t('clusterMap.duration')}
                     value={formatDuration(popupInfo.flight.durationSecs)}
                   />
                   <PopupStatRow
                     icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>}
-                    label="Distance"
+                    label={t('clusterMap.distance')}
                     value={formatDistance(popupInfo.flight.totalDistance, unitSystem, locale)}
                   />
                   <PopupStatRow
                     icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>}
-                    label="Max Alt"
+                    label={t('clusterMap.maxAlt')}
                     value={formatAltitude(popupInfo.flight.maxAltitude, unitSystem, locale)}
                   />
                 </div>
@@ -673,7 +675,7 @@ export function FlightClusterMap({
                         ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100'
                         : 'text-indigo-300 bg-indigo-500/15 hover:bg-indigo-500/25'
                     }`}>
-                      <span>View flight details</span>
+                      <span>{t('clusterMap.viewDetails')}</span>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                     </div>
                   </div>

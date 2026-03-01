@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import { fetchFlightWeather } from '@/lib/weather';
 import type { WeatherData } from '@/lib/weather';
@@ -23,6 +24,7 @@ interface WeatherModalProps {
 }
 
 export function WeatherModal({ isOpen, onClose, lat, lon, startTime, unitSystem }: WeatherModalProps) {
+  const { t } = useTranslation();
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,7 +81,7 @@ export function WeatherModal({ isOpen, onClose, lat, lon, startTime, unitSystem 
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
           <div className="flex items-center gap-2">
             <img src={weatherIcon} alt="Weather" className="w-5 h-5" />
-            <h2 className="text-lg font-semibold text-white">Flight Weather</h2>
+            <h2 className="text-lg font-semibold text-white">{t('weather.title')}</h2>
           </div>
           <button
             onClick={onClose}
@@ -99,7 +101,7 @@ export function WeatherModal({ isOpen, onClose, lat, lon, startTime, unitSystem 
                 <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
                 <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-75" />
               </svg>
-              <p className="mt-3 text-sm text-gray-400">Fetching weather data...</p>
+              <p className="mt-3 text-sm text-gray-400">{t('weather.fetching')}</p>
             </div>
           )}
 
@@ -134,32 +136,32 @@ export function WeatherModal({ isOpen, onClose, lat, lon, startTime, unitSystem 
               <div className="grid grid-cols-2 gap-3">
                 <WeatherStat
                   icon={<ThermometerIcon className="w-5 h-5 text-orange-400" />}
-                  label="Feels Like"
+                  label={t('weather.feelsLike')}
                   value={fmtTemp(weather.apparentTemperature)}
                 />
                 <WeatherStat
                   icon={<WindIcon className="w-5 h-5 text-cyan-400" />}
-                  label="Wind Speed"
+                  label={t('weather.windSpeed')}
                   value={fmtSpeed(weather.windSpeed)}
                 />
                 <WeatherStat
                   icon={<WindSockIcon className="w-5 h-5 text-teal-400" />}
-                  label="Wind Gusts"
+                  label={t('weather.windGusts')}
                   value={fmtSpeed(weather.windGusts)}
                 />
                 <WeatherStat
                   icon={<DropletIcon className="w-5 h-5 text-blue-400" />}
-                  label="Humidity"
+                  label={t('weather.humidity')}
                   value={`${weather.humidity}%`}
                 />
                 <WeatherStat
                   icon={<CloudIcon className="w-5 h-5 text-gray-400" />}
-                  label="Cloud Cover"
+                  label={t('weather.cloudCover')}
                   value={`${weather.cloudCover}%`}
                 />
                 <WeatherStat
                   icon={<RainIcon className="w-5 h-5 text-indigo-400" />}
-                  label="Precipitation"
+                  label={t('weather.precipitation')}
                   value={fmtPrecip(weather.precipitation)}
                 />
               </div>
@@ -168,19 +170,19 @@ export function WeatherModal({ isOpen, onClose, lat, lon, startTime, unitSystem 
               <div className="grid grid-cols-2 gap-3 mt-3">
                 <WeatherStat
                   icon={<CompassIcon className="w-5 h-5 text-emerald-400" />}
-                  label="Wind Direction"
+                  label={t('weather.windDirection')}
                   value={`${weather.windDirection}\u00B0 ${degToCardinal(weather.windDirection)}`}
                 />
                 <WeatherStat
                   icon={<GaugeIcon className="w-5 h-5 text-purple-400" />}
-                  label="Pressure"
+                  label={t('weather.pressure')}
                   value={fmtPressure(weather.pressure)}
                 />
               </div>
 
               {/* Footer */}
               <p className="text-[10px] text-gray-600 text-center mt-4">
-                Data from Open-Meteo based on flight location and time
+                {t('weather.attribution')}
               </p>
             </>
             );

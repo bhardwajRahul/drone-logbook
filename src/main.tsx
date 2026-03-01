@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { isWebMode } from '@/lib/api';
 import App from './App';
 import './index.css';
+import './i18n';
 
 // Attach Tauri console logger only in Tauri mode
 if (!isWebMode()) {

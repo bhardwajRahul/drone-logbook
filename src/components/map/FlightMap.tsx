@@ -14,6 +14,7 @@ import { getTrackCenter, calculateBounds, formatAltitude, formatSpeed, formatDis
 import { useFlightStore } from '@/stores/flightStore';
 import { Select } from '@/components/ui/Select';
 import type { TelemetryData, FlightMessage } from '@/types';
+import { useTranslation } from 'react-i18next';
 
 interface FlightMapProps {
   track: [number, number, number][]; // [lng, lat, alt][]
@@ -189,12 +190,12 @@ const RAMP_DISTANCE: [number, number, number][] = [
 const COLOR_VIDEO_NORMAL: [number, number, number] = [59, 130, 246]; // Blue
 const COLOR_VIDEO_RECORDING: [number, number, number] = [239, 68, 68]; // Red
 
-const COLOR_BY_OPTIONS: { value: ColorByMode; label: string }[] = [
-  { value: 'progress', label: 'Start → End' },
-  { value: 'height', label: 'Height' },
-  { value: 'speed', label: 'Speed' },
-  { value: 'distance', label: 'Dist. from Home' },
-  { value: 'videoSegment', label: 'Video Segment' },
+const COLOR_BY_OPTIONS: { value: ColorByMode; labelKey: string }[] = [
+  { value: 'progress', labelKey: 'map.startToEnd' },
+  { value: 'height', labelKey: 'map.height' },
+  { value: 'speed', labelKey: 'map.speed' },
+  { value: 'distance', labelKey: 'map.distFromHome' },
+  { value: 'videoSegment', labelKey: 'map.videoSegment' },
 ];
 
 // ─── Arrow icon for replay marker ───────────────────────────────────────────
@@ -306,6 +307,7 @@ function StickArrows({ up, down, left, right }: StickArrowsProps) {
 }
 
 export function FlightMap({ track, homeLat, homeLon, durationSecs, telemetry, themeMode, messages }: FlightMapProps) {
+  const { t } = useTranslation();
   const [viewState, setViewState] = useState({
     longitude: 0,
     latitude: 0,
@@ -1324,7 +1326,7 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, telemetry, th
   if (track.length === 0 && !hasHomeLocation) {
     return (
       <div className="h-full flex items-center justify-center bg-drone-dark">
-        <p className="text-gray-500">No GPS data available</p>
+        <p className="text-gray-500">{t('map.noGpsData')}</p>
       </div>
     );
   }
@@ -1384,7 +1386,7 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, telemetry, th
             })}
             className="w-full flex items-center justify-between gap-3 px-3 py-2 text-xs text-gray-300 hover:text-white transition-colors"
           >
-            <span className="font-semibold">Map Settings</span>
+            <span className="font-semibold">{t('map.mapSettings')}</span>
             <span
               className={`w-5 h-5 rounded-full border border-gray-600 flex items-center justify-center transition-transform duration-200 ${mapSettingsCollapsed ? 'rotate-180' : ''
                 }`}
@@ -1400,60 +1402,60 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, telemetry, th
           >
             <div className="px-3 pb-2 space-y-2">
               <ToggleRow
-                label="3D Terrain"
+                label={t('map.terrain3d')}
                 checked={is3D}
                 onChange={setIs3D}
               />
               <ToggleRow
-                label="Satellite"
+                label={t('map.satellite')}
                 checked={isSatellite}
                 onChange={setIsSatellite}
               />
               <ToggleRow
-                label="Telemetry"
+                label={t('map.telemetry')}
                 checked={showTooltip}
                 onChange={setShowTooltip}
               />
               <ToggleRow
-                label="Aircraft"
+                label={t('map.aircraft')}
                 checked={showAircraft}
                 onChange={setShowAircraft}
               />
               <ToggleRow
-                label="Media"
+                label={t('map.media')}
                 checked={showMedia}
                 onChange={setShowMedia}
               />
               <ToggleRow
-                label="Messages"
+                label={t('map.messages')}
                 checked={showMessages}
                 onChange={setShowMessages}
               />
 
               {/* Color-by dropdown */}
               <div className="pt-1 border-t border-gray-600/50">
-                <label className="block text-[10px] text-gray-400 mb-1 uppercase tracking-wide">Color by</label>
+                <label className="block text-[10px] text-gray-400 mb-1 uppercase tracking-wide">{t('map.colorBy')}</label>
                 <Select
                   value={colorBy}
                   onChange={(v) => setColorBy(v as ColorByMode)}
                   className="text-xs"
-                  options={COLOR_BY_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
+                  options={COLOR_BY_OPTIONS.map((opt) => ({ value: opt.value, label: t(opt.labelKey) }))}
                 />
               </div>
 
               {/* Line thickness dropdown */}
               <div className="pt-1 border-t border-gray-600/50">
-                <label className="block text-[10px] text-gray-400 mb-1 uppercase tracking-wide">Line Thickness</label>
+                <label className="block text-[10px] text-gray-400 mb-1 uppercase tracking-wide">{t('map.lineThickness')}</label>
                 <Select
                   value={String(lineThickness)}
                   onChange={(v) => setLineThickness(Number(v))}
                   className="text-xs"
                   options={[
-                    { value: '1', label: 'Extra Thin' },
-                    { value: '2', label: 'Thin' },
-                    { value: '3', label: 'Normal' },
-                    { value: '4', label: 'Thick' },
-                    { value: '5', label: 'Extra Thick' },
+                    { value: '1', label: t('map.extraThin') },
+                    { value: '2', label: t('map.thin') },
+                    { value: '3', label: t('map.normal') },
+                    { value: '4', label: t('map.thick') },
+                    { value: '5', label: t('map.extraThick') },
                   ]}
                 />
               </div>
@@ -1468,7 +1470,7 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, telemetry, th
               <div className="absolute w-7 h-7 bg-yellow-400/30 rounded-full animate-ping" />
               <div className="w-4 h-4 bg-yellow-400 rounded-full border-2 border-white shadow-lg z-10" />
               <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-semibold bg-yellow-500 text-black px-1.5 py-0.5 rounded shadow whitespace-nowrap z-10">
-                START
+                {t('map.start')}
               </div>
             </div>
           </Marker>
@@ -1484,7 +1486,7 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, telemetry, th
                 </svg>
               </div>
               <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-semibold bg-red-500 text-white px-1.5 py-0.5 rounded shadow whitespace-nowrap z-10">
-                END
+                {t('map.end')}
               </div>
             </div>
           </Marker>
@@ -1505,12 +1507,12 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, telemetry, th
             type="button"
             onClick={resetView}
             className="flex items-center gap-1.5 px-2.5 py-1.5 bg-drone-dark/80 hover:bg-drone-dark border border-gray-700 hover:border-gray-500 rounded-lg text-xs text-gray-300 hover:text-white shadow-lg transition-all"
-            title="Reset view to fit flight path"
+            title={t('map.resetView')}
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
             </svg>
-            <span>Reset</span>
+            <span>{t('map.reset')}</span>
           </button>
         </div>
 
@@ -1540,27 +1542,27 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, telemetry, th
           <div className="map-tooltip bg-gray-900/95 backdrop-blur-sm border border-gray-600/60 rounded-lg px-3 py-2 shadow-xl text-[11px] text-gray-200 space-y-0.5 min-w-[160px]">
             {durationSecs != null && durationSecs > 0 && (
               <div className="flex justify-between gap-4">
-                <span className="text-gray-400">Flight Time</span>
+                <span className="text-gray-400">{t('map.flightTime')}</span>
                 <span className="font-medium text-white">
                   {(() => { const s = Math.round(hoverInfo.progress * durationSecs); const m = Math.floor(s / 60); return `${m}m ${s % 60}s`; })()}
                 </span>
               </div>
             )}
             <div className="flex justify-between gap-4">
-              <span className="text-gray-400">Height</span>
+              <span className="text-gray-400">{t('map.height')}</span>
               <span className="font-medium text-white">{formatAltitude(hoverInfo.height, unitSystem, locale)}</span>
             </div>
             <div className="flex justify-between gap-4">
-              <span className="text-gray-400">Speed</span>
+              <span className="text-gray-400">{t('map.speed')}</span>
               <span className="font-medium text-white">{formatSpeed(hoverInfo.speed, unitSystem, locale)}</span>
             </div>
             <div className="flex justify-between gap-4">
-              <span className="text-gray-400">Dist. Home</span>
+              <span className="text-gray-400">{t('map.distHome')}</span>
               <span className="font-medium text-white">{formatDistance(hoverInfo.distance, unitSystem, locale)}</span>
             </div>
             {hoverInfo.battery != null && (
               <div className="flex justify-between gap-4">
-                <span className="text-gray-400">Battery</span>
+                <span className="text-gray-400">{t('map.batteryLabel')}</span>
                 <span className={`font-medium ${hoverInfo.battery > 50 ? 'text-green-400' :
                   hoverInfo.battery > 30 ? 'text-yellow-400' :
                     hoverInfo.battery > 15 ? 'text-orange-400' : 'text-red-400'
@@ -1568,11 +1570,11 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, telemetry, th
               </div>
             )}
             <div className="border-t border-gray-700/60 mt-1 pt-1 flex justify-between gap-4">
-              <span className="text-gray-500">Lat</span>
+              <span className="text-gray-500">{t('map.lat')}</span>
               <span className="text-gray-400">{hoverInfo.lat.toFixed(6)}</span>
             </div>
             <div className="flex justify-between gap-4">
-              <span className="text-gray-500">Lng</span>
+              <span className="text-gray-500">{t('map.lng')}</span>
               <span className="text-gray-400">{hoverInfo.lng.toFixed(6)}</span>
             </div>
           </div>
@@ -1599,25 +1601,25 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, telemetry, th
 
             {/* Primary stats */}
             <div className="space-y-1">
-              <ReplayStatRow label="Height" value={formatAltitude(replayTelemetry.height, unitSystem, locale)} />
-              <ReplayStatRow label="Speed" value={formatSpeed(replayTelemetry.speed, unitSystem, locale)} />
-              <ReplayStatRow label="Dist. Home" value={formatDistance(replayTelemetry.distHome, unitSystem, locale)} />
+              <ReplayStatRow label={t('map.height')} value={formatAltitude(replayTelemetry.height, unitSystem, locale)} />
+              <ReplayStatRow label={t('map.speed')} value={formatSpeed(replayTelemetry.speed, unitSystem, locale)} />
+              <ReplayStatRow label={t('map.distHome')} value={formatDistance(replayTelemetry.distHome, unitSystem, locale)} />
             </div>
 
             {/* Battery */}
             {replayTelemetry.battery !== null && (
               <div className="mt-2 pt-2 border-t border-gray-700/50 space-y-1">
                 <div className="flex justify-between gap-3">
-                  <span className="text-gray-400">Battery</span>
+                  <span className="text-gray-400">{t('map.batteryLabel')}</span>
                   <span className={`font-medium tabular-nums ${replayTelemetry.battery! < 20 ? 'text-red-400' :
                     replayTelemetry.battery! < 40 ? 'text-amber-400' : 'text-emerald-400'
                     }`}>{Math.round(replayTelemetry.battery!)}%</span>
                 </div>
                 {replayTelemetry.batteryVoltage !== null && (
-                  <ReplayStatRow label="Voltage" value={`${replayTelemetry.batteryVoltage!.toFixed(1)} V`} />
+                  <ReplayStatRow label={t('map.voltage')} value={`${replayTelemetry.batteryVoltage!.toFixed(1)} V`} />
                 )}
                 {replayTelemetry.batteryTemp !== null && (
-                  <ReplayStatRow label="Batt. Temp" value={unitSystem === 'imperial' ? `${(replayTelemetry.batteryTemp! * 9 / 5 + 32).toFixed(0)}°F` : `${replayTelemetry.batteryTemp!.toFixed(0)}°C`} />
+                  <ReplayStatRow label={t('map.battTemp')} value={unitSystem === 'imperial' ? `${(replayTelemetry.batteryTemp! * 9 / 5 + 32).toFixed(0)}°F` : `${replayTelemetry.batteryTemp!.toFixed(0)}°C`} />
                 )}
               </div>
             )}
@@ -1625,7 +1627,7 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, telemetry, th
             {/* Satellites */}
             {replayTelemetry.satellites !== null && (
               <div className="mt-2 pt-2 border-t border-gray-700/50 space-y-1">
-                <ReplayStatRow label="Satellites" value={String(Math.round(replayTelemetry.satellites!))} />
+                <ReplayStatRow label={t('map.satellites')} value={String(Math.round(replayTelemetry.satellites!))} />
               </div>
             )}
 
@@ -1633,13 +1635,13 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, telemetry, th
             {(replayTelemetry.pitch !== null || replayTelemetry.roll !== null || replayTelemetry.yaw !== null) && (
               <div className="mt-2 pt-2 border-t border-gray-700/50 space-y-1">
                 {replayTelemetry.pitch !== null && (
-                  <ReplayStatRow label="Pitch" value={`${replayTelemetry.pitch!.toFixed(1)}°`} />
+                  <ReplayStatRow label={t('map.pitch')} value={`${replayTelemetry.pitch!.toFixed(1)}°`} />
                 )}
                 {replayTelemetry.roll !== null && (
-                  <ReplayStatRow label="Roll" value={`${replayTelemetry.roll!.toFixed(1)}°`} />
+                  <ReplayStatRow label={t('map.roll')} value={`${replayTelemetry.roll!.toFixed(1)}°`} />
                 )}
                 {replayTelemetry.yaw !== null && (
-                  <ReplayStatRow label="Yaw" value={`${replayTelemetry.yaw!.toFixed(1)}°`} />
+                  <ReplayStatRow label={t('map.yaw')} value={`${replayTelemetry.yaw!.toFixed(1)}°`} />
                 )}
               </div>
             )}
@@ -1648,11 +1650,11 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, telemetry, th
             {replayTelemetry.lat !== null && replayTelemetry.lng !== null && (
               <div className="mt-2 pt-2 border-t border-gray-700/50 space-y-1">
                 <div className="flex justify-between gap-3">
-                  <span className="text-gray-500">Lat</span>
+                  <span className="text-gray-500">{t('map.lat')}</span>
                   <span className="text-gray-400 tabular-nums">{replayTelemetry.lat!.toFixed(6)}</span>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <span className="text-gray-500">Lng</span>
+                  <span className="text-gray-500">{t('map.lng')}</span>
                   <span className="text-gray-400 tabular-nums">{replayTelemetry.lng!.toFixed(6)}</span>
                 </div>
               </div>
@@ -1718,7 +1720,7 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, telemetry, th
               type="button"
               onClick={handlePlayPause}
               className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-drone-accent/20 text-drone-accent hover:bg-drone-accent/30 transition-colors"
-              title={isPlaying ? 'Pause' : 'Play'}
+              title={isPlaying ? t('map.pause') : t('map.play')}
             >
               {isPlaying ? (
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
@@ -1765,7 +1767,7 @@ export function FlightMap({ track, homeLat, homeLon, durationSecs, telemetry, th
                 setReplaySpeed(speeds[(idx + 1) % speeds.length]);
               }}
               className="flex-shrink-0 text-[9px] text-gray-300 border border-gray-600 rounded px-1.5 py-px cursor-pointer text-center min-w-[32px] hover:border-gray-400 transition-colors themed-select-trigger"
-              title="Click to cycle speed"
+              title={t('map.clickToCycleSpeed')}
             >
               {replaySpeed === 0.5 ? '½×' : `${replaySpeed}×`}
             </button>

@@ -4,6 +4,7 @@
  */
 
 import type { FlightDataResponse } from '@/types';
+import { useTranslation } from 'react-i18next';
 import { isWebMode, downloadFile, getFlightData } from '@/lib/api';
 import { buildCsv, buildJson, buildGpx, buildKml } from '@/lib/exportUtils';
 import { useMemo, useState, useRef, useEffect } from 'react';
@@ -23,6 +24,7 @@ interface FlightStatsProps {
 }
 
 export function FlightStats({ data }: FlightStatsProps) {
+  const { t } = useTranslation();
   const { flight, telemetry } = data;
   const { unitSystem, locale, getBatteryDisplayName, addTag, removeTag, allTags, getDisplaySerial } = useFlightStore();
   const [isExportOpen, setIsExportOpen] = useState(false);
@@ -96,10 +98,10 @@ export function FlightStats({ data }: FlightStatsProps) {
 
   const exportOptions = useMemo(
     () => [
-      { id: 'csv', label: 'CSV', extension: 'csv' },
-      { id: 'json', label: 'JSON', extension: 'json' },
-      { id: 'gpx', label: 'GPX', extension: 'gpx' },
-      { id: 'kml', label: 'KML', extension: 'kml' },
+      { id: 'csv', label: 'flightList.csv', extension: 'csv' },
+      { id: 'json', label: 'flightList.json', extension: 'json' },
+      { id: 'gpx', label: 'flightList.gpx', extension: 'gpx' },
+      { id: 'kml', label: 'flightList.kml', extension: 'kml' },
     ],
     []
   );
@@ -181,17 +183,17 @@ export function FlightStats({ data }: FlightStatsProps) {
             {formatDateTime(flight.startTime, locale)}
             {flight.aircraftName && (
               <span className="px-2 py-0.5 rounded-full text-xs border border-drone-primary/40 text-drone-primary bg-drone-primary/10">
-                Device: {flight.aircraftName}
+                {t('flightStats.device')} {flight.aircraftName}
               </span>
             )}
             {flight.droneSerial && (
               <span className="px-2 py-0.5 rounded-full text-xs border border-gray-600/60 text-gray-400 bg-drone-surface/60">
-                SN: {getDisplaySerial(flight.droneSerial)}
+                {t('flightStats.sn')} {getDisplaySerial(flight.droneSerial)}
               </span>
             )}
             {flight.batterySerial && (
               <span className="px-2 py-0.5 rounded-full text-xs border border-drone-accent/40 text-drone-accent bg-drone-accent/10">
-                Battery: {getBatteryDisplayName(flight.batterySerial)}
+                {t('flightStats.battery')} {getBatteryDisplayName(flight.batterySerial)}
               </span>
             )}
             {/* Flight Tags */}
@@ -215,7 +217,7 @@ export function FlightStats({ data }: FlightStatsProps) {
                       removeTag(flight.id, tagName);
                     }}
                     className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-400"
-                    title={`Remove tag: ${tagName}`}
+                    title={t('flightStats.removeTag', { name: tagName })}
                   >
                     <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
                   </button>
@@ -239,7 +241,7 @@ export function FlightStats({ data }: FlightStatsProps) {
                         setNewTagValue('');
                       }
                     }}
-                    placeholder="Tag name"
+                    placeholder={t('flightStats.tagName')}
                     className="h-6 w-28 text-xs px-2 rounded-full bg-drone-surface border border-gray-600 text-gray-200 focus:outline-none focus:border-violet-500"
                   />
                   {tagSuggestions.length > 0 && (
@@ -262,7 +264,7 @@ export function FlightStats({ data }: FlightStatsProps) {
                   type="button"
                   onClick={() => setIsAddingTag(true)}
                   className="w-5 h-5 rounded-full border border-dashed border-gray-500 text-gray-400 flex items-center justify-center hover:border-violet-400 hover:text-violet-400 transition-colors"
-                  title="Add tag"
+                  title={t('flightStats.addTag')}
                 >
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
                 </button>
@@ -273,7 +275,7 @@ export function FlightStats({ data }: FlightStatsProps) {
 
         <div className="text-right">
           <p className="text-xs text-gray-500">
-            {flight.pointCount?.toLocaleString(locale) || 0} data points
+            {flight.pointCount?.toLocaleString(locale) || 0} {t('flightStats.dataPoints')}
           </p>
         </div>
       </div>
@@ -281,38 +283,38 @@ export function FlightStats({ data }: FlightStatsProps) {
       {/* Stats Grid */}
       <div className="grid grid-cols-[repeat(5,minmax(0,1fr))_0.8fr_0.8fr_auto_auto] gap-2">
         <StatCard
-          label="Duration"
+          label={t('flightStats.duration')}
           value={formatDuration(flight.durationSecs)}
           icon={<ClockIcon />}
         />
         <StatCard
-          label="Distance"
+          label={t('flightStats.distance')}
           value={formatDistance(flight.totalDistance, unitSystem, locale)}
           icon={<DistanceIcon />}
         />
         <StatCard
-          label="Max Height"
+          label={t('flightStats.maxHeight')}
           value={formatAltitude(flight.maxAltitude, unitSystem, locale)}
           icon={<AltitudeIcon />}
         />
         <StatCard
-          label="Max Speed"
+          label={t('flightStats.maxSpeed')}
           value={formatSpeed(flight.maxSpeed, unitSystem, locale)}
           icon={<SpeedIcon />}
         />
         <StatCard
-          label="Min Battery"
+          label={t('flightStats.minBattery')}
           value={minBattery !== null ? `${minBattery}%` : '--'}
           icon={<BatteryIcon percent={minBattery} />}
           alert={minBattery !== null && minBattery < 20}
         />
         <StatCard
-          label="Photos"
+          label={t('flightStats.photos')}
           value={(flight.photoCount ?? 0).toLocaleString(locale)}
           icon={<CameraIcon />}
         />
         <StatCard
-          label="Videos"
+          label={t('flightStats.videos')}
           value={(flight.videoCount ?? 0).toLocaleString(locale)}
           icon={<VideoIcon />}
         />
@@ -321,7 +323,7 @@ export function FlightStats({ data }: FlightStatsProps) {
           type="button"
           onClick={() => setIsWeatherOpen(true)}
           disabled={!flight.homeLat || !flight.homeLon || !flight.startTime}
-          title="Flight weather"
+          title={t('flightStats.flightWeather')}
           className="h-full min-h-[52px] w-[62px] flex items-center justify-center rounded-lg border-2 border-sky-500/70 text-sky-400 transition-all duration-200 hover:bg-sky-500 hover:text-white hover:shadow-md disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-sky-400"
         >
           <WeatherBtnIcon />
@@ -333,7 +335,7 @@ export function FlightStats({ data }: FlightStatsProps) {
             className="w-[126px] h-full min-h-[52px] flex items-center justify-center gap-2 rounded-lg border-2 border-drone-accent/70 text-drone-accent text-sm font-semibold px-2 transition-all duration-200 hover:bg-drone-accent hover:text-white hover:shadow-md"
           >
             <ExportIcon />
-            {isExporting ? 'Exporting...' : 'Export'}
+            {isExporting ? t('flightStats.exporting') : t('flightStats.export')}
             <ChevronIcon />
           </button>
           {isExportOpen && (
@@ -353,7 +355,7 @@ export function FlightStats({ data }: FlightStatsProps) {
                     }}
                     className="themed-select-option w-full text-left px-3 py-2 text-xs rounded-lg transition-colors"
                   >
-                    {option.label}
+                    {t(option.label)}
                   </button>
                 ))}
               </div>

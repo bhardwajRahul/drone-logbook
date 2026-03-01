@@ -12,6 +12,7 @@
  */
 
 import { useCallback, useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useDropzone } from 'react-dropzone';
 import { isWebMode, pickFiles, computeFileHash, getFlights, getSyncConfig, getSyncFiles, syncSingleFile } from '@/lib/api';
 import { useFlightStore } from '@/stores/flightStore';
@@ -91,6 +92,7 @@ export function isBlacklisted(hash: string | null | undefined): boolean {
 }
 
 export function FlightImporter() {
+  const { t } = useTranslation();
   const { importLog, isImporting, apiKeyType, loadApiKeyType, isBatchProcessing, setIsBatchProcessing } = useFlightStore();
   const [batchMessage, setBatchMessage] = useState<string | null>(null);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
@@ -234,7 +236,7 @@ export function FlightImporter() {
 
       // Final refresh at the end
       if (processed > 0) {
-        setCurrentFileName('Refreshing flight list...');
+        setCurrentFileName(t('importer.refreshingList'));
         const { loadFlights, loadAllTags } = useFlightStore.getState();
         await loadFlights();
         loadAllTags();
@@ -247,12 +249,12 @@ export function FlightImporter() {
 
       // Build completion message
       const parts: string[] = [];
-      if (processed > 0) parts.push(`${processed} file${processed === 1 ? '' : 's'} processed`);
-      if (skipped > 0) parts.push(`${skipped} skipped (already imported)`);
-      if (duplicates > 0) parts.push(`${duplicates} skipped (duplicate flight)`);
-      if (blacklisted > 0) parts.push(`${blacklisted} skipped (blacklisted)`);
-      if (invalidFiles > 0) parts.push(`${invalidFiles} skipped (incompatible file)`);
-      setBatchMessage(`Import finished. ${parts.join(', ')}.`);
+      if (processed > 0) parts.push(t('importer.filesProcessed', { n: processed }));
+      if (skipped > 0) parts.push(`${skipped} ${t('importer.skippedAlready')}`);
+      if (duplicates > 0) parts.push(`${duplicates} ${t('importer.skippedDuplicate')}`);
+      if (blacklisted > 0) parts.push(`${blacklisted} ${t('importer.skippedBlacklisted')}`);
+      if (invalidFiles > 0) parts.push(`${invalidFiles} ${t('importer.skippedIncompatible')}`);
+      setBatchMessage(`${t('importer.importFinished')} ${parts.join(', ')}.`);
     } else {
       // Standard path with cooldown (default API key)
       // Refresh flight list after each successful import (during cooldown)
@@ -315,7 +317,7 @@ export function FlightImporter() {
 
       // Final refresh to ensure everything is up to date
       if (processed > 0) {
-        setCurrentFileName('Refreshing flight list...');
+        setCurrentFileName(t('importer.refreshingList'));
         const { loadFlights, loadAllTags } = useFlightStore.getState();
         await loadFlights();
         loadAllTags();
@@ -328,12 +330,12 @@ export function FlightImporter() {
       
       // Build completion message
       const parts: string[] = [];
-      if (processed > 0) parts.push(`${processed} file${processed === 1 ? '' : 's'} processed`);
-      if (skipped > 0) parts.push(`${skipped} skipped (already imported)`);
-      if (duplicates > 0) parts.push(`${duplicates} skipped (duplicate flight)`);
-      if (blacklisted > 0) parts.push(`${blacklisted} skipped (blacklisted)`);
-      if (invalidFiles > 0) parts.push(`${invalidFiles} skipped (incompatible file)`);
-      setBatchMessage(`Import finished. ${parts.join(', ')}.`);
+      if (processed > 0) parts.push(t('importer.filesProcessed', { n: processed }));
+      if (skipped > 0) parts.push(`${skipped} ${t('importer.skippedAlready')}`);
+      if (duplicates > 0) parts.push(`${duplicates} ${t('importer.skippedDuplicate')}`);
+      if (blacklisted > 0) parts.push(`${blacklisted} ${t('importer.skippedBlacklisted')}`);
+      if (invalidFiles > 0) parts.push(`${invalidFiles} ${t('importer.skippedIncompatible')}`);
+      setBatchMessage(`${t('importer.importFinished')} ${parts.join(', ')}.`);
     }
   };
 
@@ -537,7 +539,7 @@ export function FlightImporter() {
             if (processed > 0) parts.push(`${processed} imported`);
             if (skipped > 0) parts.push(`${skipped} skipped`);
             if (errors > 0) parts.push(`${errors} errors`);
-            setBatchMessage(`Sync complete: ${parts.join(', ')}`);
+            setBatchMessage(t('importer.syncComplete', { parts: parts.join(', ') }));
           }
         } catch (e) {
           console.error('Background sync check failed:', e);
@@ -631,7 +633,7 @@ export function FlightImporter() {
         
         if (newFiles.length > 0) {
           // Show hint about new files found, then auto-import them
-          setBackgroundSyncResult(`Found ${newFiles.length} new file${newFiles.length === 1 ? '' : 's'}. Importing...`);
+          setBackgroundSyncResult(t('importer.foundNewFiles', { n: newFiles.length }));
           
           // Small delay to show the message, then start import
           await new Promise(resolve => setTimeout(resolve, 500));
@@ -694,7 +696,7 @@ export function FlightImporter() {
         
         if (filesResponse.files.length === 0) {
           setIsSyncing(false);
-          setBatchMessage('No new files to import');
+          setBatchMessage(t('importer.noNewFiles'));
           return;
         }
         
@@ -751,9 +753,9 @@ export function FlightImporter() {
           if (processed > 0) parts.push(`${processed} imported`);
           if (skipped > 0) parts.push(`${skipped} skipped`);
           if (errors > 0) parts.push(`${errors} errors`);
-          setBatchMessage(`Sync complete: ${parts.join(', ')}`);
+          setBatchMessage(t('importer.syncComplete', { parts: parts.join(', ') }));
         } else {
-          setBatchMessage('No files to sync');
+          setBatchMessage(t('importer.noFilesToSync'));
         }
       } catch (e) {
         console.error('Sync failed:', e);
@@ -789,7 +791,7 @@ export function FlightImporter() {
         .map((entry) => `${folderPath}/${entry.name}`);
 
       if (logFiles.length === 0) {
-        setBatchMessage('No flight log files (.txt, .csv) found in sync folder.');
+        setBatchMessage(t('importer.noFlightLogs'));
         setIsSyncing(false);
         return;
       }
@@ -825,16 +827,16 @@ export function FlightImporter() {
           <div className="w-6 h-6 border-2 border-drone-primary border-t-transparent rounded-full spinner" />
           <span className="text-sm text-gray-400 break-all text-center w-full px-2">
             {cooldownRemaining > 0
-              ? `Cooling down... ${cooldownRemaining}s`
+              ? t('importer.coolingDown', { n: cooldownRemaining })
               : isSyncing
-              ? 'Scanning sync folder...'
+              ? t('importer.scanningSync')
               : currentFileName
-              ? `Importing ${currentFileName}...`
-              : 'Importing...'}
+              ? t('importer.importingName', { name: currentFileName })
+              : t('importer.importingGeneric')}
           </span>
           {batchTotal > 0 && (
             <span className="text-xs text-drone-primary font-medium">
-              {batchIndex} of {batchTotal} file{batchTotal !== 1 ? 's' : ''}
+              {t('importer.filesProgress', { n: batchIndex, total: batchTotal })}
             </span>
           )}
         </div>
@@ -858,8 +860,8 @@ export function FlightImporter() {
 
           <p className="text-xs text-gray-400 mb-2">
             {isDragActive
-              ? 'Drop the file here...'
-              : 'Import a drone flight log'}
+              ? t('importer.dropFileHere')
+              : t('importer.importFlightLog')}
           </p>
 
           <div className="flex gap-2 justify-center">
@@ -868,7 +870,7 @@ export function FlightImporter() {
               className="btn-primary text-sm py-1.5 px-3 force-white flex-1 max-w-[100px]"
               disabled={isImporting || isBatchProcessing || isSyncing}
             >
-              Browse
+              {t('importer.browse')}
             </button>
             {/* Show Sync button in desktop mode (always) or web mode (when SYNC_LOGS_PATH is configured) */}
             {(!isWebMode() || webSyncPath) && (
@@ -884,7 +886,7 @@ export function FlightImporter() {
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
-                  Sync
+                  {t('importer.sync')}
                 </div>
               </button>
             )}
@@ -902,7 +904,7 @@ export function FlightImporter() {
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
-              Manual Entry
+              {t('importer.manualEntry')}
             </button>
           </div>
           
@@ -931,7 +933,7 @@ export function FlightImporter() {
                 }}
                 className="w-3 h-3 rounded border-gray-500 bg-drone-dark text-drone-primary focus:ring-1 focus:ring-drone-primary focus:ring-offset-0 cursor-pointer"
               />
-              <span className="text-[10px] text-gray-500 group-hover:text-gray-400 transition-colors">Autoscan on startup</span>
+              <span className="text-[10px] text-gray-500 group-hover:text-gray-400 transition-colors">{t('importer.autoscanOnStartup')}</span>
             </label>
           )}
           
@@ -939,7 +941,7 @@ export function FlightImporter() {
           {isBackgroundSyncing && (
             <div className="mt-2 flex items-center justify-center gap-2 text-[10px] text-gray-500">
               <div className="w-3 h-3 border border-gray-500 border-t-transparent rounded-full animate-spin" />
-              <span>Auto-sync checking for new files...</span>
+              <span>{t('importer.autoSyncChecking')}</span>
             </div>
           )}
           
@@ -955,10 +957,10 @@ export function FlightImporter() {
                   <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                   </svg>
-                  <span className="text-xs font-medium">No sync folder configured</span>
+                  <span className="text-xs font-medium">{t('importer.noSyncFolder')}</span>
                 </div>
                 <p className="mt-1 text-[10px] text-amber-300">
-                  Click the folder icon in the header above to select a folder for automatic syncing.
+                  {t('importer.clickFolderIcon')}
                 </p>
               </div>
             ) : batchMessage === 'NO_SYNC_FOLDER_WEB' ? (
@@ -967,10 +969,10 @@ export function FlightImporter() {
                   <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                   </svg>
-                  <span className="text-xs font-medium">Sync not configured on server</span>
+                  <span className="text-xs font-medium">{t('importer.syncNotConfigured')}</span>
                 </div>
                 <p className="mt-1 text-[10px] text-amber-300">
-                  Set SYNC_LOGS_PATH environment variable and mount the volume in docker-compose.yml to enable sync.
+                  {t('importer.setSyncPath')}
                 </p>
               </div>
             ) : (

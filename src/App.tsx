@@ -1,10 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import { useFlightStore } from '@/stores/flightStore';
 import { Dashboard } from '@/components/dashboard/Dashboard';
 import { isWebMode } from '@/lib/api';
 
 /** Loading overlay shown during database initialization/migration */
 function InitializationOverlay() {
+  const { t } = useTranslation();
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-drone-dark">
       <div className="flex flex-col items-center gap-6">
@@ -26,8 +29,8 @@ function InitializationOverlay() {
         </div>
         
         <div className="text-center">
-          <h2 className="text-lg font-medium text-white mb-2">Initializing Open DroneLog</h2>
-          <p className="text-sm text-gray-400">Initialization in progress - Please wait...</p>
+          <h2 className="text-lg font-medium text-white mb-2">{t('app.initializing')}</h2>
+          <p className="text-sm text-gray-400">{t('app.initProgress')}</p>
         </div>
         
         {/* Animated progress bar */}
@@ -58,9 +61,9 @@ class AppErrorBoundary extends React.Component<
       return (
         <div className="w-full h-full bg-drone-dark text-gray-200 flex items-center justify-center p-6">
           <div className="max-w-md text-center space-y-3">
-            <h2 className="text-lg font-semibold text-white">Something went wrong</h2>
+            <h2 className="text-lg font-semibold text-white">{i18n.t('app.errorTitle')}</h2>
             <p className="text-sm text-gray-400">
-              The app hit an unexpected error. Please restart the app. If this keeps happening, let us know.
+              {i18n.t('app.errorDescription')}
             </p>
             {this.state.error && (
               <pre className="text-xs text-gray-500 whitespace-pre-wrap break-words">
@@ -77,6 +80,7 @@ class AppErrorBoundary extends React.Component<
 }
 
 function App() {
+  const { t } = useTranslation();
   const { loadFlights, error, clearError, donationAcknowledged, themeMode, isFlightsInitialized } = useFlightStore();
   const [bannerDismissed, setBannerDismissed] = useState(() => {
     if (typeof sessionStorage === 'undefined') return false;
@@ -164,7 +168,7 @@ function App() {
           <div className="relative mx-auto flex w-full items-center justify-center gap-4 px-4 py-[17px]">
             <div className="flex flex-nowrap items-center justify-center gap-2 text-[0.95rem] md:text-[1rem] text-center px-6">
               <span>
-                This is a free, open-source project on
+                {t('app.bannerText')}
               </span>
               <a
                 href="https://github.com/arpanghosh8453/open-dronelog"
@@ -177,12 +181,12 @@ function App() {
                 }
               >
                 GitHub
-              </a> by Arpan Ghosh
+              </a> {t('app.bannerBy')}
               <span className={resolvedTheme === 'light' ? 'text-gray-500' : 'text-gray-400'}>
                 •
               </span>
               <span>
-                If you find this useful, please consider supporting the developer with a coffee on
+                {t('app.bannerSupport')}
               </span>
               <a
                 href="https://ko-fi.com/arpandesign"
@@ -204,8 +208,8 @@ function App() {
                   ? 'text-gray-600 hover:text-gray-900'
                   : 'text-gray-300 hover:text-white'
               }`}
-              aria-label="Dismiss donation banner"
-              title="Dismiss"
+              aria-label={t('app.dismissBanner')}
+              title={t('app.dismiss')}
             >
               ✕
             </button>

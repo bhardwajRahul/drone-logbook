@@ -5,6 +5,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { formatDuration, formatDistance, formatAltitude, formatSpeed, type UnitSystem } from '@/lib/utils';
 import { isWebMode } from '@/lib/api';
 import type { Flight } from '@/types';
@@ -125,6 +126,7 @@ async function saveBlobDesktop(filename: string, blob: Blob): Promise<boolean> {
 }
 
 export function FlyCardGenerator({ flight, unitSystem, onClose }: FlyCardGeneratorProps) {
+  const { t } = useTranslation();
   const locale = useFlightStore((state) => state.locale);
   const cardRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -230,7 +232,7 @@ export function FlyCardGenerator({ flight, unitSystem, onClose }: FlyCardGenerat
       <div className="bg-drone-surface border border-gray-700 rounded-xl p-6 max-w-lg w-full mx-4 shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-white">Generate FlyCard</h2>
+          <h2 className="text-lg font-semibold text-white">{t('flyCard.title')}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -245,14 +247,14 @@ export function FlyCardGenerator({ flight, unitSystem, onClose }: FlyCardGenerat
         {/* Background image upload */}
         <div className="mb-4">
           <label className="block text-sm text-gray-400 mb-2">
-            Custom Background Image 
+            {t('flyCard.customBackground')} 
             {backgroundImage && (
               <button
                 type="button"
                 onClick={handleClearBackground}
                 className="ml-2 text-xs text-red-400 hover:text-red-300"
               >
-                (clear)
+                {t('flyCard.clear')}
               </button>
             )}
           </label>
@@ -269,7 +271,7 @@ export function FlyCardGenerator({ flight, unitSystem, onClose }: FlyCardGenerat
               file:cursor-pointer cursor-pointer"
           />
           {!backgroundImage && mapBackground && (
-            <p className="mt-1 text-xs text-gray-500">Using flight map as background</p>
+            <p className="mt-1 text-xs text-gray-500">{t('flyCard.usingFlightMap')}</p>
           )}
         </div>
 
@@ -282,7 +284,7 @@ export function FlyCardGenerator({ flight, unitSystem, onClose }: FlyCardGenerat
                   <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
                   <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-75" />
                 </svg>
-                <p className="text-sm text-gray-400">Generating map preview...</p>
+                <p className="text-sm text-gray-400">{t('flyCard.generatingPreview')}</p>
               </div>
             </div>
           ) : (
@@ -353,7 +355,7 @@ export function FlyCardGenerator({ flight, unitSystem, onClose }: FlyCardGenerat
                     opacity: 0.9,
                   }}
                 >
-                  Generated with opendronelog.com
+                  {t('flyCard.generatedWith')}
                 </span>
               </div>
               
@@ -390,7 +392,7 @@ export function FlyCardGenerator({ flight, unitSystem, onClose }: FlyCardGenerat
                         opacity: 0.8,
                       }}
                     >
-                      Flight Time
+                      {t('flyCard.flightTime')}
                     </p>
                     <p 
                       className="text-white"
@@ -417,7 +419,7 @@ export function FlyCardGenerator({ flight, unitSystem, onClose }: FlyCardGenerat
                         opacity: 0.8,
                       }}
                     >
-                      Distance
+                      {t('flyCard.distance')}
                     </p>
                     <p 
                       className="text-white"
@@ -444,7 +446,7 @@ export function FlyCardGenerator({ flight, unitSystem, onClose }: FlyCardGenerat
                         opacity: 0.8,
                       }}
                     >
-                      Max Height
+                      {t('flyCard.maxHeight')}
                     </p>
                     <p 
                       className="text-white"
@@ -471,7 +473,7 @@ export function FlyCardGenerator({ flight, unitSystem, onClose }: FlyCardGenerat
                         opacity: 0.8,
                       }}
                     >
-                      Max Speed
+                      {t('flyCard.maxSpeed')}
                     </p>
                     <p 
                       className="text-white"
@@ -498,7 +500,7 @@ export function FlyCardGenerator({ flight, unitSystem, onClose }: FlyCardGenerat
             onClick={onClose}
             className="px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700/50 rounded-lg transition-colors"
           >
-            Cancel
+            {t('flyCard.cancel')}
           </button>
           <button
             type="button"
@@ -512,14 +514,14 @@ export function FlyCardGenerator({ flight, unitSystem, onClose }: FlyCardGenerat
                   <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
                   <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-75" />
                 </svg>
-                Saving...
+                {t('flyCard.saving')}
               </>
             ) : (
               <>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
-                Save as PNG
+                {t('flyCard.saveAsPng')}
               </>
             )}
           </button>

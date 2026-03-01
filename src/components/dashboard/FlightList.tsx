@@ -18,6 +18,7 @@ import { useFlightStore } from '@/stores/flightStore';
 import { formatDuration, formatDateTime, formatDistance, formatAltitude, normalizeSerial } from '@/lib/utils';
 import { DayPicker, type DateRange } from 'react-day-picker';
 import type { FlightDataResponse, Flight, TelemetryData } from '@/types';
+import { useTranslation } from 'react-i18next';
 import { addToBlacklist } from './FlightImporter';
 import { FlyCardGenerator } from './FlyCardGenerator';
 import { HtmlReportModal } from './HtmlReportModal';
@@ -145,6 +146,8 @@ export function FlightList({
     clearFlightDataCache,
   } =
     useFlightStore();
+
+  const { t } = useTranslation();
 
   // Resolve theme mode for styling
   const resolvedTheme = themeMode === 'system'
@@ -301,7 +304,7 @@ export function FlightList({
   }, [heatmapDateFilter, setHeatmapDateFilter]);
 
   const dateRangeLabel = useMemo(() => {
-    if (!dateRange?.from && !dateRange?.to) return 'Any date';
+    if (!dateRange?.from && !dateRange?.to) return t('flightList.anyDate');
     if (dateRange?.from && !dateRange?.to) {
       return `From ${dateFormatter.format(dateRange.from)}`;
     }
@@ -310,7 +313,7 @@ export function FlightList({
         dateRange.to
       )}`;
     }
-    return 'Any date';
+    return t('flightList.anyDate');
   }, [dateFormatter, dateRange]);
 
   const updateDateAnchor = useCallback(() => {
@@ -771,14 +774,14 @@ export function FlightList({
 
   const sortOptions = useMemo(
     () => [
-      { value: 'name', label: 'Name' },
-      { value: 'date', label: 'Date' },
-      { value: 'duration', label: 'Duration' },
-      { value: 'distance', label: 'Distance' },
-      { value: 'altitude', label: 'Altitude' },
-      { value: 'speed', label: 'Speed' },
+      { value: 'name', label: t('flightList.sortName') },
+      { value: 'date', label: t('flightList.sortDate') },
+      { value: 'duration', label: t('flightList.sortDuration') },
+      { value: 'distance', label: t('flightList.sortDistance') },
+      { value: 'altitude', label: t('flightList.sortAltitude') },
+      { value: 'speed', label: t('flightList.sortSpeed') },
     ],
-    []
+    [t]
   );
 
   const activeSortLabel = useMemo(() => {
@@ -792,21 +795,21 @@ export function FlightList({
 
   const buildSummaryCsv = (flightsData: { flight: Flight; data: FlightDataResponse }[], getDroneDisplayNameFn: (serial: string, fallbackName: string) => string): string => {
     const headers = [
-      'Aircraft Name',
-      'Aircraft SN',
-      'Battery SN',
-      'Date',
-      'Takeoff Time',
-      'Duration',
-      'Landing Time',
-      'Travelled Distance (m)',
-      'Max Altitude (m)',
-      'Max Distance from Home (m)',
-      'Max Velocity (m/s)',
-      'Takeoff Lat',
-      'Takeoff Lon',
-      'Tags',
-      'Notes',
+      t('flightList.csvHeaderAircraftName'),
+      t('flightList.csvHeaderAircraftSN'),
+      t('flightList.csvHeaderBatterySN'),
+      t('flightList.csvHeaderDate'),
+      t('flightList.csvHeaderTakeoffTime'),
+      t('flightList.csvHeaderDuration'),
+      t('flightList.csvHeaderLandingTime'),
+      t('flightList.csvHeaderDistance'),
+      t('flightList.csvHeaderMaxAlt'),
+      t('flightList.csvHeaderMaxDist'),
+      t('flightList.csvHeaderMaxVel'),
+      t('flightList.csvHeaderTakeoffLat'),
+      t('flightList.csvHeaderTakeoffLon'),
+      t('flightList.csvHeaderTags'),
+      t('flightList.csvHeaderNotes'),
     ];
 
     const escapeCsv = (value: string) => {
@@ -1384,9 +1387,9 @@ export function FlightList({
   if (flights.length === 0) {
     return (
       <div className="p-4 text-center text-gray-500">
-        <p className="text-sm">No flights imported yet.</p>
+        <p className="text-sm">{t('flightList.noFlightsImported')}</p>
         <p className="text-xs mt-1">
-          Drag & drop a log file above to get started.
+          {t('flightList.dragAndDrop')}
         </p>
       </div>
     );
@@ -1411,8 +1414,8 @@ export function FlightList({
           <span className="flex items-center gap-1.5">
             <span className={`font-medium ${(dateRange?.from || dateRange?.to || selectedDrones.length > 0 || selectedBatteries.length > 0 || durationFilterMin !== null || durationFilterMax !== null || altitudeFilterMin !== null || altitudeFilterMax !== null || distanceFilterMin !== null || distanceFilterMax !== null || selectedTags.length > 0 || mapAreaFilterEnabled || searchQuery.trim()) ? (isFilterInverted ? 'text-red-400' : 'text-emerald-400') : ''}`}>
               {dateRange?.from || dateRange?.to || selectedDrones.length > 0 || selectedBatteries.length > 0 || durationFilterMin !== null || durationFilterMax !== null || altitudeFilterMin !== null || altitudeFilterMax !== null || distanceFilterMin !== null || distanceFilterMax !== null || selectedTags.length > 0 || mapAreaFilterEnabled || searchQuery.trim()
-                ? isFilterInverted ? 'Filters — Active — Inverted' : 'Filters — Active'
-                : isFiltersCollapsed ? 'Filters — click to expand' : 'Filters'}
+                ? isFilterInverted ? t('flightList.filtersActiveInverted') : t('flightList.filtersActive')
+                : isFiltersCollapsed ? t('flightList.filtersExpand') : t('flightList.filters')}
             </span>
             {(dateRange?.from || dateRange?.to || selectedDrones.length > 0 || selectedBatteries.length > 0 || durationFilterMin !== null || durationFilterMax !== null || altitudeFilterMin !== null || altitudeFilterMax !== null || distanceFilterMin !== null || distanceFilterMax !== null || selectedTags.length > 0 || mapAreaFilterEnabled || searchQuery.trim()) && (
               <button
@@ -1421,7 +1424,7 @@ export function FlightList({
                   e.stopPropagation();
                   setIsFilterInverted((v) => !v);
                 }}
-                title={isFilterInverted ? 'Switch to normal filtering' : 'Invert filter selection'}
+                title={isFilterInverted ? t('flightList.switchToNormal') : t('flightList.invertFilter')}
                 className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${isFilterInverted
                   ? 'text-red-400 bg-red-500/20 hover:bg-red-500/30'
                   : 'text-gray-400 hover:text-emerald-400 hover:bg-emerald-500/10'
@@ -1449,7 +1452,7 @@ export function FlightList({
           <div className="px-3 pb-3 space-y-3">
             {/* Map area filter toggle */}
             <div className="flex items-center justify-between">
-              <label className="text-xs text-gray-400">Overview map area filter</label>
+              <label className="text-xs text-gray-400">{t('flightList.overviewMapFilter')}</label>
               <button
                 type="button"
                 onClick={() => setMapAreaFilterEnabled(!mapAreaFilterEnabled)}
@@ -1472,7 +1475,7 @@ export function FlightList({
 
             {/* Duration range slider */}
             <div className="flex items-center gap-2">
-              <label className="text-xs text-gray-400 whitespace-nowrap w-[52px] flex-shrink-0 text-center">Duration</label>
+              <label className="text-xs text-gray-400 whitespace-nowrap w-[52px] flex-shrink-0 text-center">{t('flightList.duration')}</label>
               <div className="flex-1 flex items-center gap-2 min-w-0">
                 <div className="flex-1 min-w-0">
                   {(() => {
@@ -1520,7 +1523,7 @@ export function FlightList({
                     const lo = durationFilterMin ?? durationRange.minMins;
                     const hi = durationFilterMax ?? durationRange.maxMins;
                     const fmt = (m: number) => m >= 60 ? `${Math.floor(m / 60)}h${m % 60 > 0 ? m % 60 : ''}` : `${m}m`;
-                    if (durationFilterMin === null && durationFilterMax === null) return 'Any';
+                    if (durationFilterMin === null && durationFilterMax === null) return t('flightList.any');
                     return `${fmt(lo)}–${fmt(hi)}`;
                   })()}
                 </span>
@@ -1529,7 +1532,7 @@ export function FlightList({
 
             {/* Max Altitude range slider */}
             <div className="flex items-center gap-2">
-              <label className="text-xs text-gray-400 whitespace-nowrap w-[52px] flex-shrink-0 text-center">Altitude</label>
+              <label className="text-xs text-gray-400 whitespace-nowrap w-[52px] flex-shrink-0 text-center">{t('flightList.altitude')}</label>
               <div className="flex-1 flex items-center gap-2 min-w-0">
                 <div className="flex-1 min-w-0">
                   {(() => {
@@ -1577,7 +1580,7 @@ export function FlightList({
                     const lo = altitudeFilterMin ?? altitudeRange.min;
                     const hi = altitudeFilterMax ?? altitudeRange.max;
                     const fmt = (m: number) => unitSystem === 'imperial' ? `${Math.round(m * 3.28084)}ft` : `${m}m`;
-                    if (altitudeFilterMin === null && altitudeFilterMax === null) return 'Any';
+                    if (altitudeFilterMin === null && altitudeFilterMax === null) return t('flightList.any');
                     return `${fmt(lo)}–${fmt(hi)}`;
                   })()}
                 </span>
@@ -1586,7 +1589,7 @@ export function FlightList({
 
             {/* Total Distance range slider */}
             <div className="flex items-center gap-2">
-              <label className="text-xs text-gray-400 whitespace-nowrap w-[52px] flex-shrink-0 text-center">Distance</label>
+              <label className="text-xs text-gray-400 whitespace-nowrap w-[52px] flex-shrink-0 text-center">{t('flightList.distance')}</label>
               <div className="flex-1 flex items-center gap-2 min-w-0">
                 <div className="flex-1 min-w-0">
                   {(() => {
@@ -1640,7 +1643,7 @@ export function FlightList({
                       }
                       return m >= 1000 ? `${(m / 1000).toFixed(1)}km` : `${m}m`;
                     };
-                    if (distanceFilterMin === null && distanceFilterMax === null) return 'Any';
+                    if (distanceFilterMin === null && distanceFilterMax === null) return t('flightList.any');
                     return `${fmt(lo)}–${fmt(hi)}`;
                   })()}
                 </span>
@@ -1648,7 +1651,7 @@ export function FlightList({
             </div>
 
             <div className="flex items-center gap-2">
-              <label className="text-xs text-gray-400 whitespace-nowrap w-[52px] flex-shrink-0">Date</label>
+              <label className="text-xs text-gray-400 whitespace-nowrap w-[52px] flex-shrink-0">{t('flightList.date')}</label>
               <button
                 ref={dateButtonRef}
                 type="button"
@@ -1698,14 +1701,14 @@ export function FlightList({
                         onClick={() => setDateRange(undefined)}
                         className="text-xs text-gray-400 hover:text-white"
                       >
-                        Clear range
+                        {t('flightList.clearRange')}
                       </button>
                       <button
                         type="button"
                         onClick={() => setIsDateOpen(false)}
                         className="text-xs text-gray-200 hover:text-white"
                       >
-                        Done
+                        {t('flightList.done')}
                       </button>
                     </div>
                   </div>
@@ -1714,7 +1717,7 @@ export function FlightList({
             </div>
 
             <div className="flex items-center gap-2">
-              <label className="text-xs text-gray-400 whitespace-nowrap w-[52px] flex-shrink-0">Drone</label>
+              <label className="text-xs text-gray-400 whitespace-nowrap w-[52px] flex-shrink-0">{t('flightList.drone')}</label>
               <div className="relative flex-1 min-w-0">
                 <button
                   type="button"
@@ -1724,7 +1727,7 @@ export function FlightList({
                   <span className={`truncate ${selectedDrones.length > 0 ? 'text-gray-100' : 'text-gray-400'}`}>
                     {selectedDrones.length > 0
                       ? selectedDrones.map((k) => droneOptions.find((d) => d.key === k)?.label ?? k).join(', ')
-                      : 'All drones'}
+                      : t('flightList.allDrones')}
                   </span>
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0"><polyline points="6 9 12 15 18 9" /></svg>
                 </button>
@@ -1754,7 +1757,7 @@ export function FlightList({
                                 if (item) setSelectedDrones((prev) => prev.includes(item.key) ? prev.filter((k) => k !== item.key) : [...prev, item.key]);
                               } else if (e.key === 'Escape') { e.preventDefault(); setIsDroneDropdownOpen(false); setDroneSearch(''); }
                             }}
-                            placeholder="Search drones…"
+                            placeholder={t('flightList.searchDrones')}
                             autoFocus
                             className="w-full bg-drone-dark text-xs text-gray-200 rounded px-2 py-1 border border-gray-600 focus:border-drone-primary focus:outline-none placeholder-gray-500"
                           />
@@ -1763,7 +1766,7 @@ export function FlightList({
                       <div className="overflow-auto flex-1">
                         {(() => {
                           const sorted = getDroneSorted();
-                          if (sorted.length === 0) return <p className="text-xs text-gray-500 px-3 py-2">No matching drones</p>;
+                          if (sorted.length === 0) return <p className="text-xs text-gray-500 px-3 py-2">{t('flightList.noMatchingDrones')}</p>;
                           return sorted.map((drone, index) => {
                             const isSelected = selectedDrones.includes(drone.key);
                             return (
@@ -1792,7 +1795,7 @@ export function FlightList({
                             onClick={() => { setSelectedDrones([]); setDroneSearch(''); setIsDroneDropdownOpen(false); }}
                             className="w-full text-left px-3 py-1.5 text-xs text-gray-400 hover:text-white border-t border-gray-700"
                           >
-                            Clear drone filter
+                            {t('flightList.clearDroneFilter')}
                           </button>
                         )}
                       </div>
@@ -1803,7 +1806,7 @@ export function FlightList({
             </div>
 
             <div className="flex items-center gap-2">
-              <label className="text-xs text-gray-400 whitespace-nowrap w-[52px] flex-shrink-0">Battery</label>
+              <label className="text-xs text-gray-400 whitespace-nowrap w-[52px] flex-shrink-0">{t('flightList.battery')}</label>
               <div className="relative flex-1 min-w-0">
                 <button
                   type="button"
@@ -1813,7 +1816,7 @@ export function FlightList({
                   <span className={`truncate ${selectedBatteries.length > 0 ? 'text-gray-100' : 'text-gray-400'}`}>
                     {selectedBatteries.length > 0
                       ? selectedBatteries.map((s) => getBatteryDisplayName(s)).join(', ')
-                      : 'All batteries'}
+                      : t('flightList.allBatteries')}
                   </span>
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0"><polyline points="6 9 12 15 18 9" /></svg>
                 </button>
@@ -1843,7 +1846,7 @@ export function FlightList({
                                 if (item) setSelectedBatteries((prev) => prev.includes(item.value) ? prev.filter((k) => k !== item.value) : [...prev, item.value]);
                               } else if (e.key === 'Escape') { e.preventDefault(); setIsBatteryDropdownOpen(false); setBatterySearch(''); }
                             }}
-                            placeholder="Search batteries…"
+                            placeholder={t('flightList.searchBatteries')}
                             autoFocus
                             className="w-full bg-drone-dark text-xs text-gray-200 rounded px-2 py-1 border border-gray-600 focus:border-drone-primary focus:outline-none placeholder-gray-500"
                           />
@@ -1852,7 +1855,7 @@ export function FlightList({
                       <div className="overflow-auto flex-1">
                         {(() => {
                           const sorted = getBatterySorted();
-                          if (sorted.length === 0) return <p className="text-xs text-gray-500 px-3 py-2">No matching batteries</p>;
+                          if (sorted.length === 0) return <p className="text-xs text-gray-500 px-3 py-2">{t('flightList.noMatchingBatteries')}</p>;
                           return sorted.map((bat, index) => {
                             const isSelected = selectedBatteries.includes(bat.value);
                             return (
@@ -1881,7 +1884,7 @@ export function FlightList({
                             onClick={() => { setSelectedBatteries([]); setBatterySearch(''); setIsBatteryDropdownOpen(false); }}
                             className="w-full text-left px-3 py-1.5 text-xs text-gray-400 hover:text-white border-t border-gray-700"
                           >
-                            Clear battery filter
+                            {t('flightList.clearBatteryFilter')}
                           </button>
                         )}
                       </div>
@@ -1894,7 +1897,7 @@ export function FlightList({
             {/* Tag filter */}
             {allTags.length > 0 && (
               <div className="flex items-center gap-2">
-                <label className="text-xs text-gray-400 whitespace-nowrap w-[52px] flex-shrink-0">Tags</label>
+                <label className="text-xs text-gray-400 whitespace-nowrap w-[52px] flex-shrink-0">{t('flightList.tags')}</label>
                 <div className="relative flex-1 min-w-0">
                   <button
                     type="button"
@@ -1902,7 +1905,7 @@ export function FlightList({
                     className="input w-full text-xs h-8 px-3 py-1.5 flex items-center justify-between gap-2"
                   >
                     <span className={`truncate ${selectedTags.length > 0 ? 'text-gray-100' : 'text-gray-400'}`}>
-                      {selectedTags.length > 0 ? selectedTags.join(', ') : 'All tags'}
+                      {selectedTags.length > 0 ? selectedTags.join(', ') : t('flightList.allTags')}
                     </span>
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0"><polyline points="6 9 12 15 18 9" /></svg>
                   </button>
@@ -1953,7 +1956,7 @@ export function FlightList({
                                 setTagSearch('');
                               }
                             }}
-                            placeholder="Search tags…"
+                            placeholder={t('flightList.searchTags')}
                             autoFocus
                             className="w-full bg-drone-dark text-xs text-gray-200 rounded px-2 py-1 border border-gray-600 focus:border-drone-primary focus:outline-none placeholder-gray-500"
                           />
@@ -1962,7 +1965,7 @@ export function FlightList({
                           {(() => {
                             const filtered = allTags.filter((tag) => tag.toLowerCase().includes(tagSearch.toLowerCase()));
                             if (filtered.length === 0) {
-                              return <p className="text-xs text-gray-500 px-3 py-2">No matching tags</p>;
+                              return <p className="text-xs text-gray-500 px-3 py-2">{t('flightList.noMatchingTags')}</p>;
                             }
                             // Sort: selected tags first, then unselected alphabetically
                             const sorted = [...filtered].sort((a, b) => {
@@ -2012,7 +2015,7 @@ export function FlightList({
                               }}
                               className="w-full text-left px-3 py-1.5 text-xs text-gray-400 hover:text-white border-t border-gray-700"
                             >
-                              Clear tag filter
+                              {t('flightList.clearTagFilter')}
                             </button>
                           )}
                         </div>
@@ -2025,21 +2028,21 @@ export function FlightList({
 
             {/* Search filter and Sort */}
             <div className="flex items-center gap-2">
-              <label className="text-xs text-gray-400 whitespace-nowrap w-[52px] flex-shrink-0">Search</label>
+              <label className="text-xs text-gray-400 whitespace-nowrap w-[52px] flex-shrink-0">{t('flightList.search')}</label>
               <div className="relative flex-1 min-w-0">
                 <input
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Search by name..."
+                  placeholder={t('flightList.searchByName')}
                   className="input w-full text-xs h-8 px-3"
-                  aria-label="Search flights"
+                  aria-label={t('flightList.searchFlights')}
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
-                    aria-label="Clear search"
+                    aria-label={t('flightList.clearSearch')}
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                   </button>
@@ -2115,7 +2118,7 @@ export function FlightList({
             {/* Filtered count and Clear filters on same line */}
             <div className="flex items-center justify-between">
               <span className="text-xs text-gray-400">
-                {filteredFlights.length} of {flights.length} logs selected
+                {t('flightList.logsSelected', { n: filteredFlights.length, total: flights.length })}
               </span>
               <button
                 onClick={() => {
@@ -2135,7 +2138,7 @@ export function FlightList({
                 }}
                 className="text-xs text-gray-400 hover:text-white"
               >
-                Clear filters
+                {t('flightList.clearFilters')}
               </button>
             </div>
 
@@ -2151,7 +2154,7 @@ export function FlightList({
                     : 'bg-gray-800 text-gray-500 cursor-not-allowed'
                     }`}
                 >
-                  Export filtered
+                  {t('flightList.exportFiltered')}
                 </button>
 
                 {isExportDropdownOpen && (
@@ -2165,12 +2168,12 @@ export function FlightList({
                       tabIndex={-1}
                       onKeyDown={(e) => {
                         const exportOptions = [
-                          { id: 'csv', label: 'CSV', ext: 'csv', disabled: false },
-                          { id: 'json', label: 'JSON', ext: 'json', disabled: false },
-                          { id: 'gpx', label: 'GPX', ext: 'gpx', disabled: false },
-                          { id: 'kml', label: 'KML', ext: 'kml', disabled: false },
-                          { id: 'summary', label: 'Summary CSV', ext: 'csv', disabled: filteredFlights.length <= 1 },
-                          { id: 'html_report', label: 'HTML Report', ext: 'html', disabled: false },
+                          { id: 'csv', label: t('flightList.csv'), ext: 'csv', disabled: false },
+                          { id: 'json', label: t('flightList.json'), ext: 'json', disabled: false },
+                          { id: 'gpx', label: t('flightList.gpx'), ext: 'gpx', disabled: false },
+                          { id: 'kml', label: t('flightList.kml'), ext: 'kml', disabled: false },
+                          { id: 'summary', label: t('flightList.summaryCSV'), ext: 'csv', disabled: filteredFlights.length <= 1 },
+                          { id: 'html_report', label: t('flightList.htmlReport'), ext: 'html', disabled: false },
                         ];
                         const enabledOptions = exportOptions.filter(o => !o.disabled);
                         if (e.key === 'ArrowDown') {
@@ -2216,12 +2219,12 @@ export function FlightList({
                     >
                       <div className="p-2">
                         {[
-                          { id: 'csv', label: 'CSV', ext: 'csv', disabled: false },
-                          { id: 'json', label: 'JSON', ext: 'json', disabled: false },
-                          { id: 'gpx', label: 'GPX', ext: 'gpx', disabled: false },
-                          { id: 'kml', label: 'KML', ext: 'kml', disabled: false },
-                          { id: 'summary', label: 'Summary CSV', ext: 'csv', disabled: filteredFlights.length <= 1 },
-                          { id: 'html_report', label: 'HTML Report', ext: 'html', disabled: false },
+                          { id: 'csv', label: t('flightList.csv'), ext: 'csv', disabled: false },
+                          { id: 'json', label: t('flightList.json'), ext: 'json', disabled: false },
+                          { id: 'gpx', label: t('flightList.gpx'), ext: 'gpx', disabled: false },
+                          { id: 'kml', label: t('flightList.kml'), ext: 'kml', disabled: false },
+                          { id: 'summary', label: t('flightList.summaryCSV'), ext: 'csv', disabled: filteredFlights.length <= 1 },
+                          { id: 'html_report', label: t('flightList.htmlReport'), ext: 'html', disabled: false },
                         ].map((opt, index) => (
                           <button
                             key={opt.id}
@@ -2264,7 +2267,7 @@ export function FlightList({
                   : 'bg-gray-800 text-gray-500 cursor-not-allowed'
                   }`}
               >
-                Delete filtered
+                {t('flightList.deleteFiltered')}
               </button>
             </div>
 
@@ -2275,7 +2278,7 @@ export function FlightList({
                 onClick={(e) => e.stopPropagation()}
               >
                 <span className="text-gray-400">
-                  Delete {filteredFlights.length} filtered flight{filteredFlights.length !== 1 ? 's' : ''}?
+                  {t('flightList.deleteFilteredConfirm', { n: filteredFlights.length })}
                 </span>
                 <button
                   onClick={(e) => {
@@ -2284,7 +2287,7 @@ export function FlightList({
                   }}
                   className="text-xs text-red-400 hover:text-red-300"
                 >
-                  Yes
+                  {t('flightList.yes')}
                 </button>
                 <button
                   onClick={(e) => {
@@ -2293,7 +2296,7 @@ export function FlightList({
                   }}
                   className="text-xs text-gray-400 hover:text-gray-200"
                 >
-                  Cancel
+                  {t('flightList.cancel')}
                 </button>
               </div>
             )}
@@ -2312,7 +2315,7 @@ export function FlightList({
                   : 'bg-gray-500/10 text-gray-400 cursor-not-allowed'
                   }`}
               >
-                Untag filtered
+                {t('flightList.untagFiltered')}
               </button>
 
               {/* Bulk Tag Filtered Button */}
@@ -2327,7 +2330,7 @@ export function FlightList({
                   : 'bg-gray-500/10 text-gray-400 cursor-not-allowed'
                   }`}
               >
-                Bulk tag filtered
+                {t('flightList.bulkTagFiltered')}
               </button>
             </div>
 
@@ -2338,7 +2341,7 @@ export function FlightList({
                 onClick={(e) => e.stopPropagation()}
               >
                 <span className="text-gray-400">
-                  Remove tag{selectedTags.length !== 1 ? 's' : ''} "{selectedTags.join(', ')}" from filtered flights?
+                  {t('flightList.removeTagConfirm', { tags: selectedTags.join(', ') })}
                 </span>
                 <button
                   onClick={(e) => {
@@ -2347,7 +2350,7 @@ export function FlightList({
                   }}
                   className="text-xs text-orange-400 hover:text-orange-300"
                 >
-                  Yes
+                  {t('flightList.yes')}
                 </button>
                 <button
                   onClick={(e) => {
@@ -2356,7 +2359,7 @@ export function FlightList({
                   }}
                   className="text-xs text-gray-400 hover:text-gray-200"
                 >
-                  Cancel
+                  {t('flightList.cancel')}
                 </button>
               </div>
             )}
@@ -2381,7 +2384,7 @@ export function FlightList({
                       setBulkTagInput('');
                     }
                   }}
-                  placeholder="Enter tag name..."
+                  placeholder={t('flightList.enterTagName')}
                   autoFocus
                   className="input flex-1 text-xs h-7 px-2"
                 />
@@ -2392,7 +2395,7 @@ export function FlightList({
                   }}
                   className="text-xs text-violet-400 hover:text-violet-300"
                 >
-                  OK
+                  {t('flightList.ok')}
                 </button>
                 <button
                   onClick={(e) => {
@@ -2402,7 +2405,7 @@ export function FlightList({
                   }}
                   className="text-xs text-gray-400 hover:text-gray-200"
                 >
-                  Cancel
+                  {t('flightList.cancel')}
                 </button>
               </div>
             )}
@@ -2481,7 +2484,7 @@ export function FlightList({
                   onChange={(e) => setDraftName(e.target.value)}
                   onClick={(e) => e.stopPropagation()}
                   className="input h-7 text-sm px-2 w-full"
-                  placeholder="Flight name"
+                  placeholder={t('flightList.flightName')}
                 />
                 <div className="flex items-center gap-2 mt-1">
                   <button
@@ -2495,7 +2498,7 @@ export function FlightList({
                     }}
                     className="text-xs text-drone-primary"
                   >
-                    Save
+                    {t('flightList.save')}
                   </button>
                   <button
                     onClick={(e) => {
@@ -2504,7 +2507,7 @@ export function FlightList({
                     }}
                     className="text-xs text-gray-400"
                   >
-                    Cancel
+                    {t('flightList.cancel')}
                   </button>
                 </div>
               </div>
@@ -2538,7 +2541,7 @@ export function FlightList({
                       setConfirmDeleteId(null);
                     }}
                     className="p-0.5 text-sky-400 hover:text-sky-300"
-                    title="Rename flight"
+                    title={t('flightList.renameFlight')}
                   >
                     <PencilIcon />
                   </button>
@@ -2548,7 +2551,7 @@ export function FlightList({
                       setConfirmDeleteId(flight.id);
                     }}
                     className="p-0.5 text-red-400 hover:text-red-300"
-                    title="Delete flight"
+                    title={t('flightList.deleteFlight')}
                   >
                     <TrashIcon />
                   </button>
@@ -2568,7 +2571,7 @@ export function FlightList({
             {/* Delete confirmation */}
             {confirmDeleteId === flight.id && editingId !== flight.id && (
               <div className="flex items-center gap-2 mt-1 text-xs">
-                <span className="text-gray-400">Delete?</span>
+                <span className="text-gray-400">{t('flightList.deleteConfirm')}</span>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -2581,7 +2584,7 @@ export function FlightList({
                   }}
                   className="text-red-400"
                 >
-                  Yes
+                  {t('flightList.yes')}
                 </button>
                 <button
                   onClick={(e) => {
@@ -2590,7 +2593,7 @@ export function FlightList({
                   }}
                   className="text-gray-400"
                 >
-                  No
+                  {t('flightList.no')}
                 </button>
               </div>
             )}
@@ -2598,7 +2601,7 @@ export function FlightList({
         ))}
         {sortedFlights.length === 0 && (
           <div className="p-4 text-center text-gray-500 text-xs">
-            No flights match the current filters.
+            {t('flightList.noFlightsMatch')}
           </div>
         )}
       </div>
@@ -2622,7 +2625,7 @@ export function FlightList({
             <svg className="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
-            Rename
+            {t('flightList.rename')}
           </button>
 
           {/* Add/Edit Notes */}
@@ -2634,7 +2637,7 @@ export function FlightList({
             <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            {flights.find(f => f.id === contextMenu.flightId)?.notes ? 'Edit notes' : 'Add notes'}
+            {flights.find(f => f.id === contextMenu.flightId)?.notes ? t('flightList.editNotes') : t('flightList.addNotes')}
           </button>
 
           {/* Delete */}
@@ -2646,7 +2649,7 @@ export function FlightList({
             <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
-            Delete
+            {t('flightList.delete')}
           </button>
 
           {/* Divider */}
@@ -2662,7 +2665,7 @@ export function FlightList({
             <svg className="w-4 h-4 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-            Regenerate Smart Tags
+            {t('flightList.regenerateSmartTags')}
           </button>
 
           {/* Generate FlyCard */}
@@ -2679,7 +2682,7 @@ export function FlightList({
             <svg className={`w-4 h-4 ${activeView === 'overview' ? 'text-gray-600' : 'text-orange-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            Generate FlyCard
+            {t('flightList.generateFlyCard')}
           </button>
 
           {/* Divider */}
@@ -2699,7 +2702,7 @@ export function FlightList({
                 <svg className="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
-                Export
+                {t('flightList.export')}
               </span>
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -2720,28 +2723,28 @@ export function FlightList({
                   onClick={() => handleContextExport(contextMenu.flightId, 'csv')}
                   className="w-full px-3 py-1.5 text-left text-sm text-gray-300 hover:bg-gray-700/50"
                 >
-                  CSV
+                  {t('flightList.csv')}
                 </button>
                 <button
                   type="button"
                   onClick={() => handleContextExport(contextMenu.flightId, 'json')}
                   className="w-full px-3 py-1.5 text-left text-sm text-gray-300 hover:bg-gray-700/50"
                 >
-                  JSON
+                  {t('flightList.json')}
                 </button>
                 <button
                   type="button"
                   onClick={() => handleContextExport(contextMenu.flightId, 'gpx')}
                   className="w-full px-3 py-1.5 text-left text-sm text-gray-300 hover:bg-gray-700/50"
                 >
-                  GPX
+                  {t('flightList.gpx')}
                 </button>
                 <button
                   type="button"
                   onClick={() => handleContextExport(contextMenu.flightId, 'kml')}
                   className="w-full px-3 py-1.5 text-left text-sm text-gray-300 hover:bg-gray-700/50"
                 >
-                  KML
+                  {t('flightList.kml')}
                 </button>
               </div>
             )}
@@ -2757,7 +2760,7 @@ export function FlightList({
               <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
               <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-75" />
             </svg>
-            <p className="text-sm text-gray-300">Regenerating smart tags...</p>
+            <p className="text-sm text-gray-300">{t('flightList.regeneratingSmartTags')}</p>
           </div>
         </div>
       )}
@@ -2766,10 +2769,10 @@ export function FlightList({
       {isExporting && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-drone-surface border border-gray-700 rounded-xl p-6 min-w-[320px] shadow-2xl">
-            <h3 className="text-lg font-semibold mb-4">Exporting Flights</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('flightList.exportingFlights')}</h3>
             <div className="space-y-3">
               <div className="flex justify-between text-sm text-gray-400">
-                <span>Progress</span>
+                <span>{t('flightList.progress')}</span>
                 <span>{exportProgress.done} / {exportProgress.total}</span>
               </div>
               <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
@@ -2780,7 +2783,7 @@ export function FlightList({
               </div>
               {exportProgress.currentFile && (
                 <div className="text-xs text-gray-500 truncate">
-                  Current: {exportProgress.currentFile}
+                  {t('flightList.current')} {exportProgress.currentFile}
                 </div>
               )}
             </div>
@@ -2792,10 +2795,10 @@ export function FlightList({
       {isDeleting && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-drone-surface border border-gray-700 rounded-xl p-6 min-w-[320px] shadow-2xl">
-            <h3 className="text-lg font-semibold mb-4">Deleting Flights</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('flightList.deletingFlights')}</h3>
             <div className="space-y-3">
               <div className="flex justify-between text-sm text-gray-400">
-                <span>Progress</span>
+                <span>{t('flightList.progress')}</span>
                 <span>{deleteProgress.done} / {deleteProgress.total}</span>
               </div>
               <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
@@ -2813,10 +2816,10 @@ export function FlightList({
       {isUntagging && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-drone-surface border border-gray-700 rounded-xl p-6 min-w-[320px] shadow-2xl">
-            <h3 className="text-lg font-semibold mb-4">Removing Tags</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('flightList.removingTags')}</h3>
             <div className="space-y-3">
               <div className="flex justify-between text-sm text-gray-400">
-                <span>Progress</span>
+                <span>{t('flightList.progress')}</span>
                 <span>{untagProgress.done} / {untagProgress.total}</span>
               </div>
               <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
@@ -2834,10 +2837,10 @@ export function FlightList({
       {isBulkTagging && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-drone-surface border border-gray-700 rounded-xl p-6 min-w-[320px] shadow-2xl">
-            <h3 className="text-lg font-semibold mb-4">Adding Tags</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('flightList.addingTags')}</h3>
             <div className="space-y-3">
               <div className="flex justify-between text-sm text-gray-400">
-                <span>Progress</span>
+                <span>{t('flightList.progress')}</span>
                 <span>{bulkTagProgress.done} / {bulkTagProgress.total}</span>
               </div>
               <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
@@ -2872,8 +2875,8 @@ export function FlightList({
               <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
               <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-75" />
             </svg>
-            <p className="text-white font-medium">Loading flight map...</p>
-            <p className="text-gray-400 text-sm mt-1">Preparing FlyCard preview</p>
+            <p className="text-white font-medium">{t('flightList.loadingFlightMap')}</p>
+            <p className="text-gray-400 text-sm mt-1">{t('flightList.preparingFlyCard')}</p>
           </div>
         </div>
       )}
@@ -2895,12 +2898,12 @@ export function FlightList({
               <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              {flights.find(f => f.id === notesModalFlightId)?.notes ? 'Edit notes' : 'Add notes'}
+              {flights.find(f => f.id === notesModalFlightId)?.notes ? t('flightList.editNotesHeading') : t('flightList.addNotesHeading')}
             </h3>
             <textarea
               value={notesInput}
               onChange={(e) => setNotesInput(e.target.value.slice(0, 500))}
-              placeholder="Add a note for this flight..."
+              placeholder={t('flightList.addNotePlaceholder')}
               className={`w-full h-32 px-3 py-2 rounded-lg bg-drone-surface border border-gray-700 text-sm placeholder-gray-500 resize-none focus:outline-none focus:border-drone-primary ${isLight ? 'text-gray-800' : 'text-gray-200'}`}
               autoFocus
             />
@@ -2914,13 +2917,13 @@ export function FlightList({
                   }}
                   className="px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors"
                 >
-                  Cancel
+                  {t('flightList.cancel')}
                 </button>
                 <button
                   onClick={handleSaveNotes}
                   className="px-4 py-1.5 text-sm bg-drone-primary text-white rounded-lg hover:bg-drone-primary/80 transition-colors"
                 >
-                  Save
+                  {t('flightList.save')}
                 </button>
               </div>
             </div>

@@ -5,6 +5,7 @@
  */
 
 import { useMemo, useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import ReactECharts from 'echarts-for-react';
 import { DayPicker, type DateRange } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
@@ -41,6 +42,7 @@ interface OverviewProps {
 }
 
 export function Overview({ stats, flights, unitSystem, onSelectFlight }: OverviewProps) {
+  const { t } = useTranslation();
   const locale = useFlightStore((state) => state.locale);
   const themeMode = useFlightStore((state) => state.themeMode);
   const getBatteryDisplayName = useFlightStore((state) => state.getBatteryDisplayName);
@@ -239,26 +241,26 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
 
       {/* Primary Stats */}
       <div className="grid grid-cols-5 gap-3">
-        <StatCard label="Total Flights" value={filteredStats.totalFlights.toLocaleString(locale)} icon={<FlightIcon />} />
-        <StatCard label="Total Distance" value={formatDistance(filteredStats.totalDistanceM, unitSystem, locale)} icon={<DistanceIcon />} />
-        <StatCard label="Total Time" value={formatDuration(filteredStats.totalDurationSecs)} icon={<ClockIcon />} />
-        <StatCard label="Total Photos" value={filteredStats.totalPhotos.toLocaleString(locale)} icon={<CameraIcon />} />
-        <StatCard label="Total Videos" value={filteredStats.totalVideos.toLocaleString(locale)} icon={<VideoIcon />} />
+        <StatCard label={t('overview.totalFlights')} value={filteredStats.totalFlights.toLocaleString(locale)} icon={<FlightIcon />} />
+        <StatCard label={t('overview.totalDistance')} value={formatDistance(filteredStats.totalDistanceM, unitSystem, locale)} icon={<DistanceIcon />} />
+        <StatCard label={t('overview.totalTime')} value={formatDuration(filteredStats.totalDurationSecs)} icon={<ClockIcon />} />
+        <StatCard label={t('overview.totalPhotos')} value={filteredStats.totalPhotos.toLocaleString(locale)} icon={<CameraIcon />} />
+        <StatCard label={t('overview.totalVideos')} value={filteredStats.totalVideos.toLocaleString(locale)} icon={<VideoIcon />} />
       </div>
 
       {/* Secondary Stats */}
       <div className="grid grid-cols-6 gap-3">
-        <StatCard label="Max Altitude" value={formatAltitude(filteredStats.maxAltitudeM, unitSystem, locale)} icon={<AltitudeIcon />} small />
-        <StatCard label="Max Speed Achieved" value={formatSpeed(filteredStats.maxSpeedMs, unitSystem, locale)} icon={<LightningIcon />} small />
+        <StatCard label={t('overview.maxAltitude')} value={formatAltitude(filteredStats.maxAltitudeM, unitSystem, locale)} icon={<AltitudeIcon />} small />
+        <StatCard label={t('overview.maxSpeedAchieved')} value={formatSpeed(filteredStats.maxSpeedMs, unitSystem, locale)} icon={<LightningIcon />} small />
         <StatCard
-          label="Max Distance from Home"
+          label={t('overview.maxDistFromHome')}
           value={formatDistance(filteredStats.maxDistanceFromHomeM, unitSystem, locale)}
           icon={<HomeDistanceIcon />}
           small
         />
-        <StatCard label="Avg Distance / Flight" value={formatDistance(avgDistancePerFlight, unitSystem, locale)} icon={<RouteIcon />} small />
-        <StatCard label="Avg Duration / Flight" value={formatDuration(avgDurationPerFlight)} icon={<TimerIcon />} small />
-        <StatCard label="Avg Speed" value={formatSpeed(avgSpeed, unitSystem, locale)} icon={<SpeedometerIcon />} small />
+        <StatCard label={t('overview.avgDistPerFlight')} value={formatDistance(avgDistancePerFlight, unitSystem, locale)} icon={<RouteIcon />} small />
+        <StatCard label={t('overview.avgDurationPerFlight')} value={formatDuration(avgDurationPerFlight)} icon={<TimerIcon />} small />
+        <StatCard label={t('overview.avgSpeed')} value={formatSpeed(avgSpeed, unitSystem, locale)} icon={<SpeedometerIcon />} small />
       </div>
 
       {/* Activity Heatmap + Drone Flight Time Row */}
@@ -285,31 +287,31 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
       <div className="grid grid-cols-3 gap-4">
         {/* Drone Model Chart */}
         <div className="card p-4">
-          <h3 className="text-sm font-semibold text-white mb-3">Flights by Drone</h3>
+          <h3 className="text-sm font-semibold text-white mb-3">{t('overview.flightsByDrone')}</h3>
           <DonutChart
             data={filteredStats.dronesUsed.map((d) => ({
               name: d.displayLabel,
               value: d.flightCount,
             }))}
-            emptyMessage="No drone data available"
+            emptyMessage={t('overview.noDroneData')}
           />
         </div>
 
         {/* Battery Usage Chart */}
         <div className="card p-4">
-          <h3 className="text-sm font-semibold text-white mb-3">Flights by Battery</h3>
+          <h3 className="text-sm font-semibold text-white mb-3">{t('overview.flightsByBattery')}</h3>
           <DonutChart
             data={filteredStats.batteriesUsed.map((b) => ({
               name: getBatteryDisplayName(b.batterySerial),
               value: b.flightCount,
             }))}
-            emptyMessage="No battery data available"
+            emptyMessage={t('overview.noBatteryData')}
           />
         </div>
 
         {/* Flights by Duration Chart */}
         <div className="card p-4">
-          <h3 className="text-sm font-semibold text-white mb-3">Flights by Duration</h3>
+          <h3 className="text-sm font-semibold text-white mb-3">{t('overview.flightsByDuration')}</h3>
           <DonutChart
             data={(() => {
               let short = 0, mid = 0, long = 0;
@@ -320,12 +322,12 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
                 else long++;
               });
               return [
-                { name: 'Short (<10 min)', value: short },
-                { name: 'Mid (10–20 min)', value: mid },
-                { name: 'Long (>20 min)', value: long },
+                { name: t('overview.shortDuration'), value: short },
+                { name: t('overview.midDuration'), value: mid },
+                { name: t('overview.longDuration'), value: long },
               ].filter((d) => d.value > 0);
             })()}
-            emptyMessage="No flight data available"
+            emptyMessage={t('overview.noFlightData')}
           />
         </div>
       </div>
@@ -346,7 +348,7 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
       <div className="grid grid-cols-2 gap-4">
         {/* Battery Health Indicators */}
         <div className="card p-4">
-          <h3 className="text-sm font-semibold text-white mb-3">Battery Health</h3>
+          <h3 className="text-sm font-semibold text-white mb-3">{t('overview.batteryHealth')}</h3>
           <BatteryHealthList
             batteries={filteredStats.batteriesUsed}
             points={filteredHealthPoints}
@@ -359,9 +361,9 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
 
         {/* Top 3 Longest Flights */}
         <div className="card p-4">
-          <h3 className="text-sm font-semibold text-white mb-3">Top 3 Longest Flights</h3>
+          <h3 className="text-sm font-semibold text-white mb-3">{t('overview.top3Longest')}</h3>
           {filteredStats.topFlights.length === 0 ? (
-            <p className="text-sm text-gray-400">No flights available.</p>
+            <p className="text-sm text-gray-400">{t('overview.noFlightsAvailable')}</p>
           ) : (
             <div className="space-y-2">
               {filteredStats.topFlights.map((flight, index) => (
@@ -393,9 +395,9 @@ export function Overview({ stats, flights, unitSystem, onSelectFlight }: Overvie
           )}
 
           <div className="mt-5">
-            <h3 className="text-sm font-semibold text-white mb-3">Top 3 Furthest Flights</h3>
+            <h3 className="text-sm font-semibold text-white mb-3">{t('overview.top3Furthest')}</h3>
             {filteredTopDistanceFlights.length === 0 ? (
-              <p className="text-sm text-gray-400">No flights available.</p>
+              <p className="text-sm text-gray-400">{t('overview.noFlightsAvailable')}</p>
             ) : (
               <div className="space-y-2">
                 {filteredTopDistanceFlights.map((flight, index) => (
@@ -533,6 +535,7 @@ const MILESTONES = [
 ];
 
 function PilotMilestoneTimeline({ totalHours }: { totalHours: number }) {
+  const { t } = useTranslation();
   // Calculate current milestone index and progress within segment
   const currentMilestoneIndex = useMemo(() => {
     for (let i = MILESTONES.length - 1; i >= 0; i--) {
@@ -623,7 +626,7 @@ function PilotMilestoneTimeline({ totalHours }: { totalHours: number }) {
                   {/* Combined label - pushed down more */}
                   <div className={`mt-3 text-[10px] whitespace-nowrap ${isFuture ? 'text-gray-500' : isActive ? 'text-white font-semibold' : 'text-gray-400'
                     }`}>
-                    {milestone.hours === 0 ? 'Start' : milestone.hours === 200 ? '200+' : `${milestone.hours}h`}
+                    {milestone.hours === 0 ? t('overview.start') : milestone.hours === 200 ? t('overview.hours200plus') : `${milestone.hours}h`}
                   </div>
                 </div>
               );
@@ -635,14 +638,12 @@ function PilotMilestoneTimeline({ totalHours }: { totalHours: number }) {
         <div className="flex-shrink-0 text-right">
           {nextMilestone ? (
             <div className="text-xs">
-              <span className="text-gray-400">Next: </span>
-              <span className="text-white font-medium">{nextMilestone.label}</span>
-              <span className="text-cyan-400 font-medium"> ({formatHours(nextMilestone.hours - totalHours)})</span>
+              <span className="text-white font-medium">{t('overview.nextRank', { label: t(`overview.${nextMilestone.label.toLowerCase()}`), time: formatHours(nextMilestone.hours - totalHours) })}</span>
             </div>
           ) : (
-            <div className="text-xs text-amber-400 font-medium">Max Rank!</div>
+            <div className="text-xs text-amber-400 font-medium">{t('overview.maxRank')}</div>
           )}
-          <div className="text-sm font-bold text-white">{formatHours(totalHours)} flown</div>
+          <div className="text-sm font-bold text-white">{t('overview.hoursFlown', { hours: formatHours(totalHours) })}</div>
         </div>
       </div>
     </div>
@@ -658,6 +659,7 @@ function ActivityHeatmapCard({
   isLight: boolean;
   onDateDoubleClick?: (date: Date) => void;
 }) {
+  const { t } = useTranslation();
   const locale = useFlightStore((state) => state.locale);
   const today = new Date();
   const oneYearAgo = new Date(today);
@@ -717,7 +719,7 @@ function ActivityHeatmapCard({
   return (
     <div className="card p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-white">Flight Activity</h3>
+        <h3 className="text-sm font-semibold text-white">{t('overview.flightActivity')}</h3>
         <div className="flex items-center gap-1 text-xs">
           <CalendarIcon />
           <button
@@ -728,7 +730,7 @@ function ActivityHeatmapCard({
               ? 'bg-drone-primary/20 text-drone-primary'
               : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
               }`}
-            title="Select start date"
+            title={t('overview.selectStartDate')}
           >
             {formatDate(dateRange?.from)}
           </button>
@@ -741,7 +743,7 @@ function ActivityHeatmapCard({
               ? 'bg-drone-primary/20 text-drone-primary'
               : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
               }`}
-            title="Select end date"
+            title={t('overview.selectEndDate')}
           >
             {formatDate(dateRange?.to)}
           </button>
@@ -763,7 +765,7 @@ function ActivityHeatmapCard({
             }}
           >
             <div className={`text-xs font-medium mb-2 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>
-              Select {pickingDate === 'from' ? 'start' : 'end'} date
+              {pickingDate === 'from' ? t('overview.selectStartDate') : t('overview.selectEndDate')}
             </div>
             <DayPicker
               mode="single"
@@ -784,14 +786,14 @@ function ActivityHeatmapCard({
                 }}
                 className={`text-xs ${isLight ? 'text-gray-500 hover:text-gray-900' : 'text-gray-400 hover:text-white'}`}
               >
-                Reset to 365 days
+                {t('overview.resetTo365')}
               </button>
               <button
                 type="button"
                 onClick={() => setPickingDate(null)}
                 className={`text-xs ${isLight ? 'text-gray-700 hover:text-gray-900' : 'text-gray-200 hover:text-white'}`}
               >
-                Done
+                {t('overview.done')}
               </button>
             </div>
           </div>
@@ -821,6 +823,7 @@ function ActivityHeatmap({
   dateRange?: DateRange;
   onDateDoubleClick?: (date: Date) => void;
 }) {
+  const { t } = useTranslation();
   const locale = useFlightStore((state) => state.locale);
   const maxWidth = 1170;
   const labelWidth = 28;
@@ -909,7 +912,7 @@ function ActivityHeatmap({
     return `rgb(${r}, ${g}, ${b})`;
   };
 
-  const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayLabels = [t('overview.sun'), t('overview.mon'), t('overview.tue'), t('overview.wed'), t('overview.thu'), t('overview.fri'), t('overview.sat')];
 
   const colSize = cellSize + gapSize;
   const contentWidth = weekCount * colSize + labelWidth * 2;
@@ -973,7 +976,7 @@ function ActivityHeatmap({
                     }}
                     title={
                       day.count >= 0
-                        ? `${day.date.toLocaleDateString(locale)}: ${day.count} flight${day.count !== 1 ? 's' : ''} (double-click to filter)`
+                        ? t('overview.heatmapTooltip', { date: day.date.toLocaleDateString(locale), count: day.count })
                         : ''
                     }
                     onDoubleClick={() => {
@@ -991,7 +994,7 @@ function ActivityHeatmap({
 
           {/* Legend */}
           <div className="flex items-center gap-2 mt-2 text-[10px] text-gray-500">
-            <span>Less</span>
+            <span>{t('overview.less')}</span>
             <div className="flex gap-0.5">
               {[0, 0.25, 0.5, 0.75, 1].map((intensity, i) => (
                 <div
@@ -1003,7 +1006,7 @@ function ActivityHeatmap({
                 />
               ))}
             </div>
-            <span>More</span>
+            <span>{t('overview.more')}</span>
           </div>
         </div>
       </div>
@@ -1048,6 +1051,7 @@ function DroneFlightTimeList({
   getDisplaySerial: (serial: string) => string;
   hideSerialNumbers: boolean;
 }) {
+  const { t } = useTranslation();
   const [editingSerial, setEditingSerial] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
   const [renameError, setRenameError] = useState<string | null>(null);
@@ -1055,8 +1059,8 @@ function DroneFlightTimeList({
   if (drones.length === 0) {
     return (
       <div className="card p-4">
-        <h3 className="text-sm font-semibold text-white mb-3">Drone Flight Time</h3>
-        <p className="text-sm text-gray-400">No drone data available.</p>
+        <h3 className="text-sm font-semibold text-white mb-3">{t('overview.droneFlightTime')}</h3>
+        <p className="text-sm text-gray-400">{t('overview.noDroneData')}</p>
       </div>
     );
   }
@@ -1105,7 +1109,7 @@ function DroneFlightTimeList({
 
   return (
     <div className="card p-4">
-      <h3 className="text-sm font-semibold text-white mb-3">Drone Flight Time</h3>
+      <h3 className="text-sm font-semibold text-white mb-3">{t('overview.droneFlightTime')}</h3>
       <div className="space-y-2 max-h-[200px] overflow-y-auto" style={{ padding: '0 8px 0 4px' }}>
         {drones.map((drone) => {
           const fallbackName = drone.aircraftName || drone.droneModel;
@@ -1134,7 +1138,7 @@ function DroneFlightTimeList({
                       if (e.key === 'Escape') handleCancelRename();
                     }}
                     className="input h-6 text-xs px-2 w-full"
-                    placeholder="Drone name"
+                    placeholder={t('overview.droneName')}
                     autoFocus
                   />
                   <div className="flex items-center gap-2 mt-0.5">
@@ -1142,13 +1146,13 @@ function DroneFlightTimeList({
                       onClick={() => handleSaveRename(drone.droneSerial!)}
                       className="text-[10px] text-drone-primary hover:text-drone-primary/80"
                     >
-                      Save
+                      {t('overview.save')}
                     </button>
                     <button
                       onClick={handleCancelRename}
                       className="text-[10px] text-gray-400 hover:text-gray-300"
                     >
-                      Cancel
+                      {t('overview.cancel')}
                     </button>
                     {renameError && (
                       <span className="text-[10px] text-red-400">{renameError}</span>
@@ -1175,7 +1179,7 @@ function DroneFlightTimeList({
                       <button
                         onClick={() => handleStartRename(drone.droneSerial!, fallbackName)}
                         className="p-0.5 text-sky-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                        title="Rename drone"
+                        title={t('overview.renameDrone')}
                       >
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
@@ -1212,6 +1216,7 @@ function DonutChart({
   data: { name: string; value: number }[];
   emptyMessage: string;
 }) {
+  const { t } = useTranslation();
   const chartRef = useRef<HTMLDivElement>(null);
   const [chartWidth, setChartWidth] = useState(0);
 
@@ -1264,7 +1269,7 @@ function DonutChart({
       borderColor: '#374151',
       textStyle: { color: '#e5e7eb' },
       formatter: (params: { name: string; value: number; percent: number }) => {
-        return `<strong>${params.name}</strong><br/>Flights: ${params.value} (${params.percent.toFixed(1)}%)`;
+        return `<strong>${params.name}</strong><br/>${t('overview.donutTooltip', { value: params.value, percent: params.percent.toFixed(1) })}`;
       },
     },
     legend: {
@@ -1337,13 +1342,14 @@ function BatteryHealthList({
   renameBattery: (serial: string, displayName: string) => void;
   hideSerialNumbers: boolean;
 }) {
+  const { t } = useTranslation();
   const locale = useFlightStore((state) => state.locale);
   const [editingSerial, setEditingSerial] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
   const [renameError, setRenameError] = useState<string | null>(null);
 
   if (batteries.length === 0) {
-    return <p className="text-sm text-gray-400">No battery data available.</p>;
+    return <p className="text-sm text-gray-400">{t('overview.noBatteryDataAvailable')}</p>;
   }
 
   // Estimate health based on flight count (assuming 400 cycles = end of life)
@@ -1447,7 +1453,7 @@ function BatteryHealthList({
 
   const chartOption = {
     title: {
-      text: 'Per minute battery % usage history',
+      text: t('overview.batteryUsageHistory'),
       left: 'center',
       textStyle: { color: titleColor, fontSize: 12, fontWeight: 'normal' as const },
     },
@@ -1455,7 +1461,7 @@ function BatteryHealthList({
       feature: {
         dataZoom: {
           yAxisIndex: 'none',
-          title: { zoom: 'Drag to zoom', back: 'Reset zoom' },
+          title: { zoom: t('overview.dragToZoom'), back: t('overview.resetZoom') },
         },
       },
       right: 16,
@@ -1479,9 +1485,9 @@ function BatteryHealthList({
         if (!params?.length) return '';
         const dateLabel = params[0].value?.[0]
           ? new Date(params[0].value[0]).toLocaleDateString(locale)
-          : 'Unknown date';
+          : t('overview.unknownDate');
         const lines = params
-          .map((item) => `${item.seriesName}: ${item.value[1]} %/min`)
+          .map((item) => `${item.seriesName}: ${item.value[1]} ${t('overview.percentPerMin')}`)
           .join('<br/>');
         return `<strong>${dateLabel}</strong><br/>${lines}`;
       },
@@ -1571,7 +1577,7 @@ function BatteryHealthList({
                       if (e.key === 'Escape') handleCancelRename();
                     }}
                     className="input h-6 text-xs px-2 w-full"
-                    placeholder="Battery name"
+                    placeholder={t('overview.batteryName')}
                     autoFocus
                   />
                   <div className="flex items-center gap-2 mt-0.5">
@@ -1579,13 +1585,13 @@ function BatteryHealthList({
                       onClick={() => handleSaveRename(battery.batterySerial)}
                       className="text-[10px] text-drone-primary hover:text-drone-primary/80"
                     >
-                      Save
+                      {t('overview.save')}
                     </button>
                     <button
                       onClick={handleCancelRename}
                       className="text-[10px] text-gray-400 hover:text-gray-300"
                     >
-                      Cancel
+                      {t('overview.cancel')}
                     </button>
                     {renameError && (
                       <span className="text-[10px] text-red-400">{renameError}</span>
@@ -1606,7 +1612,7 @@ function BatteryHealthList({
                     <button
                       onClick={() => handleStartRename(battery.batterySerial)}
                       className="p-0.5 text-sky-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                      title="Rename battery"
+                      title={t('overview.renameBattery')}
                     >
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
@@ -1626,7 +1632,7 @@ function BatteryHealthList({
                     {healthPercent.toFixed(0)}%
                   </span>
                   <span className="text-gray-400 text-[10px] text-left truncate">
-                    {battery.flightCount} flights · {formatDuration(battery.totalDurationSecs)}
+                    {t('overview.flightsAndDuration', { n: battery.flightCount, duration: formatDuration(battery.totalDurationSecs) })}
                   </span>
                 </div>
               )}
@@ -1642,7 +1648,7 @@ function BatteryHealthList({
           }} />
         </div>
       ) : (
-        <p className="text-xs text-gray-500">No battery usage points available.</p>
+        <p className="text-xs text-gray-500">{t('overview.noBatteryUsagePoints')}</p>
       )}
     </div>
   );
@@ -1679,6 +1685,7 @@ function MaintenanceSection({
   setMaintenanceThreshold,
   performMaintenance,
 }: MaintenanceSectionProps) {
+  const { t } = useTranslation();
   const locale = useFlightStore((state) => state.locale);
   const [selectedBatteries, setSelectedBatteries] = useState<string[]>([]);
   const [selectedAircrafts, setSelectedAircrafts] = useState<string[]>([]);
@@ -1869,7 +1876,7 @@ function MaintenanceSection({
   };
 
   const formatLastReset = (date: Date | null) => {
-    if (!date) return 'Never';
+    if (!date) return t('overview.never');
     return date.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
@@ -1932,7 +1939,7 @@ function MaintenanceSection({
     <div className={`card p-5 border ${cardBg}`}>
       <div className="flex items-center gap-2 mb-5">
         <MaintenanceIcon />
-        <h3 className={`text-base font-semibold ${textPrimary}`}>Maintenance</h3>
+        <h3 className={`text-base font-semibold ${textPrimary}`}>{t('overview.maintenance')}</h3>
       </div>
 
       <div className="grid grid-cols-2 gap-6">
@@ -1940,13 +1947,13 @@ function MaintenanceSection({
         <div className={`p-4 rounded-lg border ${isLight ? 'bg-gray-50 border-gray-200' : 'bg-gray-800/30 border-gray-700/50'}`}>
           <div className="flex items-center gap-2 mb-4">
             <BatteryIcon />
-            <h4 className={`text-sm font-semibold ${textPrimary}`}>Battery Maintenance</h4>
+            <h4 className={`text-sm font-semibold ${textPrimary}`}>{t('overview.batteryMaintenance')}</h4>
           </div>
 
           {/* Threshold Inputs */}
           <div className="grid grid-cols-2 gap-3 mb-3">
             <div>
-              <label className={`block text-xs ${textMuted} mb-1.5`}>Flight Threshold</label>
+              <label className={`block text-xs ${textMuted} mb-1.5`}>{t('overview.flightThreshold')}</label>
               <input
                 type="number"
                 value={batteryFlightThreshold}
@@ -1956,7 +1963,7 @@ function MaintenanceSection({
               />
             </div>
             <div>
-              <label className={`block text-xs ${textMuted} mb-1.5`}>Airtime Threshold (hrs)</label>
+              <label className={`block text-xs ${textMuted} mb-1.5`}>{t('overview.airtimeThreshold')}</label>
               <input
                 type="number"
                 value={batteryAirtimeThreshold}
@@ -1972,13 +1979,13 @@ function MaintenanceSection({
             onClick={handleApplyBatteryThresholds}
             className="w-full h-7 text-xs font-medium rounded bg-drone-primary/20 text-drone-primary hover:bg-drone-primary/30 transition-colors mb-4"
           >
-            Apply Thresholds
+            {t('overview.applyThresholds')}
           </button>
 
           {/* All Batteries Progress Summary */}
           {batteryProgressList.length > 0 && (
             <div className="mb-4">
-              <h5 className={`text-xs font-medium ${textSecondary} mb-3`}>All Batteries</h5>
+              <h5 className={`text-xs font-medium ${textSecondary} mb-3`}>{t('overview.allBatteries')}</h5>
               <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
                 {batteryProgressList.map((b) => {
                   const flightPercent = Math.min((b.flights / maintenanceThresholds.battery.flights) * 100, 100);
@@ -2010,7 +2017,7 @@ function MaintenanceSection({
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <div className="flex justify-between items-center mb-1">
-                            <span className={`text-[10px] ${textMuted}`}>Flights</span>
+                            <span className={`text-[10px] ${textMuted}`}>{t('overview.flights')}</span>
                             <span className={`text-[10px] ${getProgressTextColor(flightPercent)}`}>
                               {b.flights}/{maintenanceThresholds.battery.flights}
                             </span>
@@ -2027,7 +2034,7 @@ function MaintenanceSection({
                         </div>
                         <div>
                           <div className="flex justify-between items-center mb-1">
-                            <span className={`text-[10px] ${textMuted}`}>Airtime</span>
+                            <span className={`text-[10px] ${textMuted}`}>{t('overview.airtime')}</span>
                             <span className={`text-[10px] ${getProgressTextColor(airtimePercent)}`}>
                               {b.airtime.toFixed(1)}/{maintenanceThresholds.battery.airtime}h
                             </span>
@@ -2052,7 +2059,7 @@ function MaintenanceSection({
 
           {/* Individual Battery Section */}
           <div className={`pt-4 border-t ${isLight ? 'border-gray-200' : 'border-gray-600/30'}`}>
-            <h5 className={`text-xs font-medium ${textSecondary} mb-3`}>Selected Battery Details</h5>
+            <h5 className={`text-xs font-medium ${textSecondary} mb-3`}>{t('overview.selectedBatteryDetails')}</h5>
 
             {/* Battery Multi-Select Dropdown */}
             <div className="relative mb-3">
@@ -2067,7 +2074,7 @@ function MaintenanceSection({
                 <span className={`truncate ${selectedBatteries.length > 0 ? '' : (isLight ? 'text-gray-500' : 'text-gray-400')}`}>
                   {selectedBatteries.length > 0
                     ? selectedBatteries.map(s => getBatteryDisplayName(s)).join(', ')
-                    : 'Select batteries'}
+                    : t('overview.selectBatteries')}
                 </span>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0"><polyline points="6 9 12 15 18 9" /></svg>
               </button>
@@ -2111,7 +2118,7 @@ function MaintenanceSection({
                         className={`w-full text-left px-3 py-1.5 text-xs border-t ${isLight ? 'text-gray-500 hover:text-gray-700 border-gray-200' : 'text-gray-400 hover:text-white border-gray-700'
                           }`}
                       >
-                        Clear selection
+                        {t('overview.clearSelection')}
                       </button>
                     )}
                   </div>
@@ -2134,7 +2141,7 @@ function MaintenanceSection({
                       <div className="grid grid-cols-2 gap-3 mb-2">
                         <div>
                           <div className="flex justify-between items-center mb-1">
-                            <span className={`text-xs ${textSecondary}`}>Flights</span>
+                            <span className={`text-xs ${textSecondary}`}>{t('overview.flights')}</span>
                             <span className={`text-xs ${getProgressTextColor(flightPercent)}`}>
                               {progress.flights} / {maintenanceThresholds.battery.flights}
                             </span>
@@ -2151,7 +2158,7 @@ function MaintenanceSection({
                         </div>
                         <div>
                           <div className="flex justify-between items-center mb-1">
-                            <span className={`text-xs ${textSecondary}`}>Airtime</span>
+                            <span className={`text-xs ${textSecondary}`}>{t('overview.airtime')}</span>
                             <span className={`text-xs ${getProgressTextColor(airtimePercent)}`}>
                               {progress.airtime.toFixed(1)} / {maintenanceThresholds.battery.airtime} hrs
                             </span>
@@ -2169,7 +2176,7 @@ function MaintenanceSection({
                       </div>
                       <div className="flex items-center justify-between">
                         <span className={`text-[10px] ${textMuted}`}>
-                          Last maintenance: {formatLastReset(progress.lastReset)}
+                          {t('overview.lastMaintenance', { date: formatLastReset(progress.lastReset) })}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 mt-2 h-9">
@@ -2220,7 +2227,7 @@ function MaintenanceSection({
                             : 'border-green-500/50 text-green-400 hover:bg-green-500/10'
                             }`}
                         >
-                          ✓ Maintenance Done
+                          {t('overview.maintenanceDone')}
                         </button>
                       </div>
                     </div>
@@ -2235,13 +2242,13 @@ function MaintenanceSection({
         <div className={`p-4 rounded-lg border ${isLight ? 'bg-gray-50 border-gray-200' : 'bg-gray-800/30 border-gray-700/50'}`}>
           <div className="flex items-center gap-2 mb-4">
             <AircraftIcon />
-            <h4 className={`text-sm font-semibold ${textPrimary}`}>Aircraft Maintenance</h4>
+            <h4 className={`text-sm font-semibold ${textPrimary}`}>{t('overview.aircraftMaintenance')}</h4>
           </div>
 
           {/* Threshold Inputs */}
           <div className="grid grid-cols-2 gap-3 mb-3">
             <div>
-              <label className={`block text-xs ${textMuted} mb-1.5`}>Flight Threshold</label>
+              <label className={`block text-xs ${textMuted} mb-1.5`}>{t('overview.flightThreshold')}</label>
               <input
                 type="number"
                 value={aircraftFlightThreshold}
@@ -2251,7 +2258,7 @@ function MaintenanceSection({
               />
             </div>
             <div>
-              <label className={`block text-xs ${textMuted} mb-1.5`}>Airtime Threshold (hrs)</label>
+              <label className={`block text-xs ${textMuted} mb-1.5`}>{t('overview.airtimeThreshold')}</label>
               <input
                 type="number"
                 value={aircraftAirtimeThreshold}
@@ -2267,13 +2274,13 @@ function MaintenanceSection({
             onClick={handleApplyAircraftThresholds}
             className="w-full h-7 text-xs font-medium rounded bg-drone-primary/20 text-drone-primary hover:bg-drone-primary/30 transition-colors mb-4"
           >
-            Apply Thresholds
+            {t('overview.applyThresholds')}
           </button>
 
           {/* All Aircraft Progress Summary */}
           {aircraftProgressList.length > 0 && (
             <div className="mb-4">
-              <h5 className={`text-xs font-medium ${textSecondary} mb-3`}>All Aircraft</h5>
+              <h5 className={`text-xs font-medium ${textSecondary} mb-3`}>{t('overview.allAircraft')}</h5>
               <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
                 {aircraftProgressList.map((a) => {
                   const flightPercent = Math.min((a.flights / maintenanceThresholds.aircraft.flights) * 100, 100);
@@ -2305,7 +2312,7 @@ function MaintenanceSection({
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <div className="flex justify-between items-center mb-1">
-                            <span className={`text-[10px] ${textMuted}`}>Flights</span>
+                            <span className={`text-[10px] ${textMuted}`}>{t('overview.flights')}</span>
                             <span className={`text-[10px] ${getProgressTextColor(flightPercent)}`}>
                               {a.flights}/{maintenanceThresholds.aircraft.flights}
                             </span>
@@ -2322,7 +2329,7 @@ function MaintenanceSection({
                         </div>
                         <div>
                           <div className="flex justify-between items-center mb-1">
-                            <span className={`text-[10px] ${textMuted}`}>Airtime</span>
+                            <span className={`text-[10px] ${textMuted}`}>{t('overview.airtime')}</span>
                             <span className={`text-[10px] ${getProgressTextColor(airtimePercent)}`}>
                               {a.airtime.toFixed(1)}/{maintenanceThresholds.aircraft.airtime}h
                             </span>
@@ -2347,7 +2354,7 @@ function MaintenanceSection({
 
           {/* Individual Aircraft Section */}
           <div className={`pt-4 border-t ${isLight ? 'border-gray-200' : 'border-gray-600/30'}`}>
-            <h5 className={`text-xs font-medium ${textSecondary} mb-3`}>Selected Aircraft Details</h5>
+            <h5 className={`text-xs font-medium ${textSecondary} mb-3`}>{t('overview.selectedAircraftDetails')}</h5>
 
             {/* Aircraft Multi-Select Dropdown */}
             <div className="relative mb-3">
@@ -2365,7 +2372,7 @@ function MaintenanceSection({
                       const drone = drones.find(d => d.droneSerial === s);
                       return drone ? getDroneDisplayName(s, drone.aircraftName || drone.droneModel) : s;
                     }).join(', ')
-                    : 'Select aircraft'}
+                    : t('overview.selectAircraft')}
                 </span>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0"><polyline points="6 9 12 15 18 9" /></svg>
               </button>
@@ -2410,7 +2417,7 @@ function MaintenanceSection({
                         className={`w-full text-left px-3 py-1.5 text-xs border-t ${isLight ? 'text-gray-500 hover:text-gray-700 border-gray-200' : 'text-gray-400 hover:text-white border-gray-700'
                           }`}
                       >
-                        Clear selection
+                        {t('overview.clearSelection')}
                       </button>
                     )}
                   </div>
@@ -2434,7 +2441,7 @@ function MaintenanceSection({
                       <div className="grid grid-cols-2 gap-3 mb-2">
                         <div>
                           <div className="flex justify-between items-center mb-1">
-                            <span className={`text-xs ${textSecondary}`}>Flights</span>
+                            <span className={`text-xs ${textSecondary}`}>{t('overview.flights')}</span>
                             <span className={`text-xs ${getProgressTextColor(flightPercent)}`}>
                               {progress.flights} / {maintenanceThresholds.aircraft.flights}
                             </span>
@@ -2451,7 +2458,7 @@ function MaintenanceSection({
                         </div>
                         <div>
                           <div className="flex justify-between items-center mb-1">
-                            <span className={`text-xs ${textSecondary}`}>Airtime</span>
+                            <span className={`text-xs ${textSecondary}`}>{t('overview.airtime')}</span>
                             <span className={`text-xs ${getProgressTextColor(airtimePercent)}`}>
                               {progress.airtime.toFixed(1)} / {maintenanceThresholds.aircraft.airtime} hrs
                             </span>
@@ -2469,7 +2476,7 @@ function MaintenanceSection({
                       </div>
                       <div className="flex items-center justify-between">
                         <span className={`text-[10px] ${textMuted}`}>
-                          Last maintenance: {formatLastReset(progress.lastReset)}
+                          {t('overview.lastMaintenance', { date: formatLastReset(progress.lastReset) })}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 mt-2 h-9">
@@ -2520,7 +2527,7 @@ function MaintenanceSection({
                             : 'border-green-500/50 text-green-400 hover:bg-green-500/10'
                             }`}
                         >
-                          ✓ Maintenance Done
+                          {t('overview.maintenanceDone')}
                         </button>
                       </div>
                     </div>

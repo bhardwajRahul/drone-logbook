@@ -7,6 +7,8 @@ import { create } from 'zustand';
 import * as api from '@/lib/api';
 import type { Flight, FlightDataResponse, ImportResult, OverviewStats } from '@/types';
 import { normalizeSerial } from '@/lib/utils';
+import i18n from '@/i18n';
+import { localeToLang } from '@/i18n';
 
 interface FlightState {
   // State
@@ -677,6 +679,8 @@ export const useFlightStore = create<FlightState>((set, get) => ({
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('locale', locale);
     }
+    const lang = localeToLang[locale] || 'en';
+    i18n.changeLanguage(lang);
     set({ locale });
   },
 
