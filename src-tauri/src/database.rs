@@ -148,6 +148,7 @@ impl Database {
     }
 
     /// Explicitly forces a WAL checkpoint. Useful for flushing the WAL before shutdown.
+    #[cfg(feature = "tauri-app")]
     pub fn checkpoint(&self) -> Result<(), DatabaseError> {
         let conn = self.conn.lock().unwrap();
         conn.execute_batch("CHECKPOINT;")?;
