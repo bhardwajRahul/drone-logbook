@@ -163,7 +163,7 @@ impl Database {
             SET memory_limit = '2GB';
             SET threads = 4;
             SET enable_progress_bar = false;
-            PRAGMA wal_autocheckpoint='50MB';
+            PRAGMA wal_autocheckpoint='25MB';
             "#,
         )?;
         Ok(())
@@ -694,7 +694,7 @@ impl Database {
             return Ok(());
         }
 
-        log::warn!("Telemetry column order mismatch detected. Rebuilding table.");
+        log::warn!("Telemetry column order mismatch detected. Rebuilding table with correct schema.");
 
         let existing: std::collections::HashSet<&str> =
             actual.iter().map(|s| s.as_str()).collect();
@@ -711,14 +711,58 @@ impl Database {
             .collect::<Vec<_>>()
             .join(", ");
 
+        // Use explicit schema to preserve PRIMARY KEY and correct column types
+        // (DOUBLE for lat/lon precision, FLOAT for everything else to save space)
         conn.execute_batch(&format!(
             r#"
             BEGIN TRANSACTION;
-            CREATE TABLE telemetry_new AS SELECT {} FROM telemetry;
+            
+            CREATE TABLE telemetry_reordered (
+                flight_id       BIGINT NOT NULL,
+                timestamp_ms    BIGINT NOT NULL,
+                latitude        DOUBLE,
+                longitude       DOUBLE,
+                altitude        FLOAT,
+                height          FLOAT,
+                vps_height      FLOAT,
+                altitude_abs    FLOAT,
+                speed           FLOAT,
+                velocity_x      FLOAT,
+                velocity_y      FLOAT,
+                velocity_z      FLOAT,
+                pitch           FLOAT,
+                roll            FLOAT,
+                yaw             FLOAT,
+                gimbal_pitch    FLOAT,
+                gimbal_roll     FLOAT,
+                gimbal_yaw      FLOAT,
+                battery_percent INTEGER,
+                battery_voltage FLOAT,
+                battery_current FLOAT,
+                battery_temp    FLOAT,
+                cell_voltages   VARCHAR,
+                flight_mode     VARCHAR,
+                gps_signal      INTEGER,
+                satellites      INTEGER,
+                rc_signal       INTEGER,
+                rc_uplink       INTEGER,
+                rc_downlink     INTEGER,
+                rc_aileron      FLOAT,
+                rc_elevator     FLOAT,
+                rc_throttle     FLOAT,
+                rc_rudder       FLOAT,
+                is_photo        BOOLEAN,
+                is_video        BOOLEAN,
+                PRIMARY KEY (flight_id, timestamp_ms)
+            );
+            
+            INSERT INTO telemetry_reordered SELECT {} FROM telemetry;
             DROP TABLE telemetry;
-            ALTER TABLE telemetry_new RENAME TO telemetry;
+            ALTER TABLE telemetry_reordered RENAME TO telemetry;
+            
             CREATE INDEX IF NOT EXISTS idx_telemetry_flight_time
                 ON telemetry(flight_id, timestamp_ms);
+            
             COMMIT;
             "#,
             select_list
