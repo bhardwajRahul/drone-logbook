@@ -256,7 +256,11 @@ export function Dashboard() {
           <div className="flex items-center justify-between px-3 py-2">
             <button
               type="button"
-              onClick={() => setIsImporterCollapsed((v) => !v)}
+              onClick={() => setIsImporterCollapsed((v) => {
+                const next = !v;
+                if (!next) window.dispatchEvent(new CustomEvent('collapseFilters'));
+                return next;
+              })}
               className="flex items-center gap-2 text-xs text-gray-400 hover:text-white transition-colors"
             >
               <span className={`font-medium ${(isImporting || isBatchProcessing) ? 'text-emerald-400' : ''}`}>
@@ -307,7 +311,11 @@ export function Dashboard() {
               )}
               {/* Collapse/Expand Button */}
               <span
-                onClick={() => setIsImporterCollapsed((v) => !v)}
+                onClick={() => setIsImporterCollapsed((v) => {
+                  const next = !v;
+                  if (!next) window.dispatchEvent(new CustomEvent('collapseFilters'));
+                  return next;
+                })}
                 className={`w-5 h-5 rounded-full border border-gray-600 flex items-center justify-center transition-transform duration-200 cursor-pointer hover:border-gray-500 ${
                   isImporterCollapsed !== false ? 'rotate-180' : ''
                 }`}
@@ -332,6 +340,7 @@ export function Dashboard() {
         <div className="flex-1 min-h-0 flex flex-col">
           <FlightList 
             activeView={activeView}
+            onFiltersExpanded={() => setIsImporterCollapsed(true)}
             onSelectFlight={(flightId) => {
               // Clear the overview highlight when navigating to a flight
               useFlightStore.getState().setOverviewHighlightedFlightId(null);

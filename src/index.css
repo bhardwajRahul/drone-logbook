@@ -563,6 +563,47 @@ body.theme-light .maplibregl-ctrl-group {
 }
 
 /* Dual-range duration slider */
+
+/* Scrollbar for filter scroll area */
+.filter-scroll-area::-webkit-scrollbar {
+  width: 8px;
+}
+.filter-scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 4px 0;
+}
+.filter-scroll-area::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
+.filter-scroll-area::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.6);
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
+.filter-scroll-area {
+  scrollbar-width: auto;
+  scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
+}
+
+/* Light theme override */
+body.theme-light .filter-scroll-area::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.35);
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
+body.theme-light .filter-scroll-area::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.55);
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
+body.theme-light .filter-scroll-area {
+  scrollbar-color: rgba(100, 116, 139, 0.35) transparent;
+}
+
 .dual-range-wrap {
   position: relative;
   height: 20px;

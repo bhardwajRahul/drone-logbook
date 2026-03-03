@@ -825,7 +825,7 @@ export function FlightImporter() {
       {isImporting || isBatchProcessing || isSyncing ? (
         <div className="flex flex-col items-center gap-2">
           <div className="w-6 h-6 border-2 border-drone-primary border-t-transparent rounded-full spinner" />
-          <span className="text-sm text-gray-400 break-all text-center w-full px-2">
+          <span className="text-xs text-gray-400 break-all text-center w-full px-2">
             {cooldownRemaining > 0
               ? t('importer.coolingDown', { n: cooldownRemaining })
               : isSyncing
@@ -857,13 +857,11 @@ export function FlightImporter() {
               />
             </svg>
           </div>
-
-          <p className="text-xs text-gray-400 mb-2">
+          <p className="text-xs text-gray-400 mb-3">
             {isDragActive
               ? t('importer.dropFileHere')
               : t('importer.importFlightLog')}
           </p>
-
           <div className="flex gap-2 justify-center">
             <button
               onClick={handleBrowse}
@@ -872,7 +870,6 @@ export function FlightImporter() {
             >
               {t('importer.browse')}
             </button>
-            {/* Show Sync button in desktop mode (always) or web mode (when SYNC_LOGS_PATH is configured) */}
             {(!isWebMode() || webSyncPath) && (
               <button
                 onClick={handleSync}
@@ -882,7 +879,7 @@ export function FlightImporter() {
                   ? (webSyncPath ? `Sync from server: ${webSyncPath}` : 'Sync not configured on server')
                   : (syncFolderPath ? `Sync from: ${getSyncFolderDisplayName()}` : 'Configure sync folder first')}
               >
-                <div className="flex items-center justify-center gap-1">
+                <div className="flex items-center gap-1">
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
@@ -891,19 +888,19 @@ export function FlightImporter() {
               </button>
             )}
           </div>
-
-          {/* Manual entry button */}
-          <div className="flex justify-center mt-2">
+          <div className="mt-2 flex justify-center">
             <button
               onClick={() => setIsManualEntryOpen(true)}
-              className="btn-primary text-sm py-1.5 px-5 force-white flex items-center justify-center gap-1"
+              className="btn-primary text-sm py-1.5 px-5 force-white"
               disabled={isImporting || isBatchProcessing || isSyncing}
               title="Add a flight manually without a log file"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              {t('importer.manualEntry')}
+              <div className="flex items-center gap-1">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                {t('importer.manualEntry')}
+              </div>
             </button>
           </div>
           
