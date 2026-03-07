@@ -318,7 +318,7 @@ export const useFlightStore = create<FlightState>((set, get) => ({
   })(),
 
   // Profile management
-  activeProfile: (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('activeProfile')) || 'default',
+  activeProfile: api.getProfileKey('activeProfile') || 'default',
   profiles: ['default'],
   profilePasswords: {},
 
@@ -1041,25 +1041,20 @@ export const useFlightStore = create<FlightState>((set, get) => ({
       for (const p of profileInfos) {
         profilePasswords[p.name] = p.hasPassword;
       }
-      // Use the client-side (per-tab) active profile from sessionStorage,
-      // falling back to the server-default only on first visit.
+      // Use the client-side active profile from localStorage (persists across
+      // tab/browser closes), falling back to the server-default on first visit.
+      // sessionStorage is checked first for per-tab isolation.
       // In Tauri desktop mode, always trust the backend (handles auto-logout on close).
       let active: string;
       if (api.isWebMode()) {
-        active = typeof sessionStorage !== 'undefined'
-          ? sessionStorage.getItem('activeProfile') || ''
-          : '';
+        active = api.getProfileKey('activeProfile') || '';
         if (!active || !profiles.includes(active)) {
           active = await api.getActiveProfile();
-          if (typeof sessionStorage !== 'undefined') {
-            sessionStorage.setItem('activeProfile', active);
-          }
+          api.setProfileKey('activeProfile', active);
         }
       } else {
         active = await api.getActiveProfile();
-        if (typeof sessionStorage !== 'undefined') {
-          sessionStorage.setItem('activeProfile', active);
-        }
+        api.setProfileKey('activeProfile', active);
       }
       set({ profiles, activeProfile: active, profilePasswords });
 
@@ -1111,12 +1106,10 @@ export const useFlightStore = create<FlightState>((set, get) => ({
     });
 
     // ── Store session token if provided (web mode, protected profile) ──
-    if (typeof sessionStorage !== 'undefined') {
-      if (result.session) {
-        sessionStorage.setItem('profileSession', result.session);
-      } else {
-        sessionStorage.removeItem('profileSession');
-      }
+    if (result.session) {
+      api.setProfileKey('profileSession', result.session);
+    } else {
+      api.removeProfileKey('profileSession');
     }
 
     // ── Load target profile's settings ──
@@ -1137,8 +1130,7 @@ export const useFlightStore = create<FlightState>((set, get) => ({
           // ignore corrupt snapshot
         }
       }
-      localStorage.setItem('activeProfile', name);
-      sessionStorage.setItem('activeProfile', name);
+      api.setProfileKey('activeProfile', name);
     }
 
     // Reload the page so all state re-initializes from localStorage
@@ -1152,18 +1144,14 @@ export const useFlightStore = create<FlightState>((set, get) => ({
       master_password: opts?.masterPassword,
     });
     // Remove session if this was the deleted profile
-    if (typeof sessionStorage !== 'undefined') {
-      sessionStorage.removeItem('profileSession');
-    }
+    api.removeProfileKey('profileSession');
     // Refresh the profile list
     await get().loadProfiles();
   },
 
   logout: () => {
     // Clear session token (web mode)
-    if (typeof sessionStorage !== 'undefined') {
-      sessionStorage.removeItem('profileSession');
-    }
+    api.removeProfileKey('profileSession');
     // Reset initialised flag + trigger auth overlay
     set({ needsAuth: true, isFlightsInitialized: false });
   },

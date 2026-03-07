@@ -36,6 +36,39 @@ async function getTauriInvoke() {
 // ============================================================================
 
 /**
+ * Read a profile-related key, preferring the tab-scoped sessionStorage
+ * (so each tab can be on a different profile) and falling back to
+ * localStorage (so a freshly-opened tab inherits the last-used profile).
+ */
+export function getProfileKey(key: string): string | null {
+  if (typeof sessionStorage !== 'undefined') {
+    const v = sessionStorage.getItem(key);
+    if (v !== null) return v;
+  }
+  if (typeof localStorage !== 'undefined') {
+    const v = localStorage.getItem(key);
+    // Seed sessionStorage so subsequent reads stay tab-local
+    if (v !== null && typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem(key, v);
+    }
+    return v;
+  }
+  return null;
+}
+
+/** Write a profile-related key to both storages (tab-scope + persistence). */
+export function setProfileKey(key: string, value: string): void {
+  if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(key, value);
+  if (typeof localStorage !== 'undefined') localStorage.setItem(key, value);
+}
+
+/** Remove a profile-related key from both storages. */
+export function removeProfileKey(key: string): void {
+  if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(key);
+  if (typeof localStorage !== 'undefined') localStorage.removeItem(key);
+}
+
+/**
  * Build the per-request headers that identify the caller's active profile.
  * In web mode every request includes `X-Profile` so the server can route
  * the request to the correct database — enabling independent multi-tab usage.
@@ -44,14 +77,10 @@ async function getTauriInvoke() {
  */
 function profileHeaders(): Record<string, string> {
   const headers: Record<string, string> = {};
-  if (typeof sessionStorage !== 'undefined') {
-    headers['X-Profile'] = sessionStorage.getItem('activeProfile') || 'default';
-    const session = sessionStorage.getItem('profileSession');
-    if (session) {
-      headers['X-Session'] = session;
-    }
-  } else {
-    headers['X-Profile'] = 'default';
+  headers['X-Profile'] = getProfileKey('activeProfile') || 'default';
+  const session = getProfileKey('profileSession');
+  if (session) {
+    headers['X-Session'] = session;
   }
   return headers;
 }
@@ -858,7 +887,7 @@ export async function setProfilePassword(
   currentPassword?: string,
 ): Promise<boolean> {
   if (isWeb) {
-    const session = sessionStorage.getItem('profileSession') || undefined;
+    const session = getProfileKey('profileSession') || undefined;
     return fetchJson<boolean>('/profiles/set_password', {
       method: 'POST',
       body: JSON.stringify({
