@@ -853,29 +853,48 @@ export function FlightMap({ flightId, track, homeLat, homeLon, durationSecs, tel
     }
   }, [track, homeLat, homeLon]);
 
-  // Smooth the raw GPS track
+  // Smooth the complete GPS track so telemetry-to-path indices and gradient
+  // domains remain stable while replay clips the visible portion of the path.
   const smoothedTrack = useMemo(() => {
-    if (displayedTrack.length < 3) return displayedTrack;
+    if (track.length < 3) return track;
     if (simplified) {
       // Simplified: two passes of moving-average for noise reduction
       // with minimal vertex count — works well on all devices.
-      const pass1 = movingAverageSmooth(displayedTrack, 5);
+      const pass1 = movingAverageSmooth(track, 5);
       return movingAverageSmooth(pass1, 4);
     }
     // Full mode: cap raw points before Catmull-Rom to avoid creating
     // an excessive number of segments (resolution 4 = 4x multiplier).
     // 3000 raw → ~12000 smoothed points is plenty for visual fidelity.
-    const capped = displayedTrack.length > 3000 ? downsample(displayedTrack, 3000) : displayedTrack;
+    const capped = track.length > 3000 ? downsample(track, 3000) : track;
     return smoothTrack(capped, 4);
-  }, [displayedTrack, simplified]);
+  }, [track, simplified]);
+
+  // Drawing is clipped independently from color calculation. Because this is
+  // always a prefix of the full smoothed track, point indices still describe
+  // their position in the complete flight while replay is active.
+  const visibleSmoothedTrack = useMemo(() => {
+    if (!tracePathActive || smoothedTrack.length < 2) return smoothedTrack;
+    const maxIdx = Math.max(
+      1,
+      Math.min(
+        smoothedTrack.length - 1,
+        Math.floor(replayProgress * (smoothedTrack.length - 1)),
+      ),
+    );
+    return smoothedTrack.slice(0, maxIdx + 1);
+  }, [tracePathActive, smoothedTrack, replayProgress]);
 
   const deckPathData = useMemo(() => {
-    if (smoothedTrack.length < 2) return [];
+    if (visibleSmoothedTrack.length < 2) return [];
 
     // Flight heights are relative to takeoff; deck.gl positions are above sea level.
     const toAlt = (altitude: number) => (is3D ? altitude + groundElevation : 0);
+    // `n` and `rawN` intentionally describe the complete flight. `renderN`
+    // only controls how many already-colored segments are drawn during replay.
     const n = smoothedTrack.length;
-    const rawN = displayedTrack.length;
+    const renderN = visibleSmoothedTrack.length;
+    const rawN = track.length;
 
     // ── Simplified: single multi-point path with solid color ──────
     // This reduces GPU draw calls from thousands to 1, which is
@@ -886,7 +905,7 @@ export function FlightMap({ flightId, track, homeLat, homeLon, durationSecs, tel
       // When 3D terrain is on, use deck.gl PathLayer for altitude.
       // When flat 2D, the MapLibre native line layer handles rendering.
       if (!is3D) return [];
-      const full: [number, number, number][] = smoothedTrack.map(([lng, lat, alt]) => [
+      const full: [number, number, number][] = visibleSmoothedTrack.map(([lng, lat, alt]) => [
         lng, lat, toAlt(alt),
       ]);
       const path = downsample(full, 2000);
@@ -1079,9 +1098,9 @@ export function FlightMap({ flightId, track, homeLat, homeLon, durationSecs, tel
       }
     };
 
-    for (let i = 0; i < n - 1; i++) {
-      const ptA = smoothedTrack[i];
-      const ptB = smoothedTrack[i + 1];
+    for (let i = 0; i < renderN - 1; i++) {
+      const ptA = visibleSmoothedTrack[i];
+      const ptB = visibleSmoothedTrack[i + 1];
       if (!ptA || !ptB) continue;
 
       let color: [number, number, number];
@@ -1128,12 +1147,12 @@ export function FlightMap({ flightId, track, homeLat, homeLon, durationSecs, tel
     flushBatch();
 
     return segments;
-  }, [is3D, groundElevation, smoothedTrack, displayedTrack, colorBy, homeLat, homeLon, telemetry, durationSecs, showTooltip, simplified]);
+  }, [is3D, groundElevation, smoothedTrack, visibleSmoothedTrack, track.length, colorBy, homeLat, homeLon, telemetry, durationSecs, showTooltip, simplified]);
 
   // ── Simplified 2D: GeoJSON for MapLibre native line layer ──────
   const simplifiedPathGeoJSON = useMemo(() => {
-    if (!simplified || is3D || smoothedTrack.length < 2) return null;
-    const coords = downsample(smoothedTrack, 800).map(([lng, lat]) => [lng, lat]);
+    if (!simplified || is3D || visibleSmoothedTrack.length < 2) return null;
+    const coords = downsample(visibleSmoothedTrack, 800).map(([lng, lat]) => [lng, lat]);
     return {
       type: 'Feature' as const,
       geometry: {
@@ -1142,7 +1161,7 @@ export function FlightMap({ flightId, track, homeLat, homeLon, durationSecs, tel
       },
       properties: {},
     };
-  }, [simplified, is3D, smoothedTrack]);
+  }, [simplified, is3D, visibleSmoothedTrack]);
 
   const deckLayers = useMemo(() => {
     if (deckPathData.length === 0) return [];
